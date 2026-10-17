@@ -3,6 +3,9 @@
 // Rules for every prompt: say who it's for, write for the ear, use only the material given,
 // and never invent slides, numbers or text. If there is nothing to answer from, say so.
 // Output shapes are enforced by the JSON schemas in gemini.js, so prompts describe fields, not formatting.
+//
+// The spoken field (overview) is a verbatim read of the slide with image descriptions inserted in
+// reading order. Nothing is summarized by default. A summary mode is a planned optional setting.
 
 export const SPOKEN_RULES = `Rules for visuals and overview: write for the ear, in plain sentences.
 No bullet characters, no markdown, no symbols. Say "percent" instead of
@@ -47,14 +50,15 @@ borders, divider lines, layout, or colors, unless a color carries
 meaning, as in a chart. If there is nothing meaningful to describe,
 leave this empty.
 
-overview: what someone would hear instead of seeing the slide. Prefer
-the slide's own words. If the slide has little text, the overview is
-that text read in order, plus a short description of any meaningful
-visual. Paraphrase only to shorten dense text or to summarize a chart,
-and then give the main point first and the most important number. Keep
-it under about sixty words. Start directly with the content. Do not
-begin with phrases like "This slide shows", and do not repeat the title.
-If the slide is only a title, the overview is the subtitle or presenter
-name if there is one, plus the visuals.
+overview: the slide read aloud, for someone who cannot see it. All of
+the slide's text, word for word, in reading order. Never include the
+title, because it is announced separately before this is read. Do not
+summarize, shorten, reorder, or add commentary. Where a chart,
+diagram, photo, illustration, screenshot, or table appears in the
+reading order, insert its description at that point, beginning with
+one of these exact markers followed by a colon: "Image:", "Chart:",
+"Diagram:", "Photo:", "Table:". The marker lets the listener tell a
+description from slide text. Use the same descriptions as in visuals.
+Leave out decoration.
 
 ${SPOKEN_RULES}`;

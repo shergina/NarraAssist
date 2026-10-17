@@ -24,7 +24,10 @@ Rooms are in memory. A server restart clears them.
 
 ```js
 // Slide. From a screenshot, number is the slide number printed on the slide, or null if there is none.
-{ number: 3, title: "Q3 revenue", text: "…", visuals: "A bar chart showing…", overview: "This slide…" }
+{ number: 3, title: "Q3 revenue", text: "…", visuals: "A bar chart showing…", overview: "…" }
+// overview is what is spoken on "describe": the slide text word for word, without the title, with each
+// visual's description inserted in reading order and marked "Image:", "Chart:", "Photo:" and so on.
+// Nothing is summarized. A shorter summary mode is a planned optional setting.
 
 // Deck status
 { status: "none" | "processing" | "ready" | "error", fileName, error, slideCount }
