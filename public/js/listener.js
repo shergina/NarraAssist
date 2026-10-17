@@ -21,8 +21,10 @@ const state = {
   stopSlides: null,
   helper: null,
   describing: false,
+  manualDescriptionEnd: false,
   waiting: [], // words held back while a description plays
   speakers: [], // { name, at } not yet announced
+  speakerHistory: [], // { name, at } used to answer "who is speaking" during catch-up
   lastSpeaker: null,
   lastAlert: "",
 };
@@ -36,15 +38,17 @@ const socket = connectSocket(room, "listener", {
 // ---------- what the listener hears ----------
 
 // Nothing speaks over a description: words wait until it ends.
-function say(text) {
+function say(text, options = {}) {
+  if (!text) return;
   state.lastAlert = text;
-  if (state.describing) state.waiting.push(text);
-  else announce(text);
+  if (state.describing) state.waiting.push({ text, options });
+  else announce(text, options);
 }
 
 function flushWaiting() {
-  const words = state.waiting.splice(0);
-  if (words.length) announce(words.join(" "));
+  const queued = state.waiting.splice(0);
+  const words = queued.map(({ text }) => text);
+  if (words.length) announce(words.join(" "), { assertive: queued.some(({ options }) => options.assertive) });
 }
 
 function onMessage(msg) {
@@ -83,29 +87,58 @@ function onMessage(msg) {
   }
 }
 
-async function onLocalSlideChange({ frame }) {
+async function onLocalSlideChange({ at, frame }) {
   earcons.slideChanged();
   try {
-    await api(`/api/rooms/${room}/frame`, { method: "POST", body: frame, headers: { "Content-Type": "image/jpeg" } });
+    await api(`/api/rooms/${room}/frame`, {
+      method: "POST",
+      body: frame,
+      headers: { "Content-Type": "image/jpeg", "X-Captured-At": String(at) },
+    });
   } catch (err) {
     console.warn("Frame check failed:", err.message);
+    say("Couldn't send the slide for description. Check your connection and try again.", { assertive: true });
   }
 }
 
 // Speaker names: only while hearing the speaker, timed against what is actually playing.
 function onSpeaker({ name, at }) {
-  if (settings.get("announce.speaker")) state.speakers.push({ name, at });
+  if (!name || !Number.isFinite(at)) return;
+  const entry = { name, at };
+  state.speakerHistory.push(entry);
+  state.speakerHistory.sort((a, b) => a.at - b.at);
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  while (state.speakerHistory.length > 1 && state.speakerHistory[1].at < cutoff) state.speakerHistory.shift();
+  if (settings.get("announce.speaker")) {
+    state.speakers.push(entry);
+    state.speakers.sort((a, b) => a.at - b.at);
+  }
+}
+
+function speakerAtPlaybackTime() {
+  const heardUpTo = state.audio ? state.audio.meetingTime : Date.now();
+  for (let i = state.speakerHistory.length - 1; i >= 0; i -= 1) {
+    if (state.speakerHistory[i].at <= heardUpTo) return state.speakerHistory[i].name;
+  }
+  return null;
 }
 
 setInterval(() => {
+  if (!settings.get("announce.speaker")) {
+    state.speakers.length = 0;
+    return;
+  }
   if (state.describing || !state.speakers.length) return;
   const heardUpTo = state.audio ? state.audio.meetingTime : Date.now();
-  let due = null;
-  while (state.speakers.length && state.speakers[0].at <= heardUpTo) due = state.speakers.shift();
-  if (due && due.name !== state.lastSpeaker) {
-    state.lastSpeaker = due.name;
-    say(due.name);
+  const names = [];
+  while (state.speakers.length && state.speakers[0].at <= heardUpTo) {
+    const { name } = state.speakers.shift();
+    if (name !== state.lastSpeaker) {
+      state.lastSpeaker = name;
+      names.push(name);
+    }
   }
+  if (names.length) say(names.join(". "));
 }, 250);
 
 // ---------- meeting connection ----------
@@ -131,7 +164,7 @@ $("#connect").addEventListener("click", async () => {
     state.capture = await startCapture();
   } catch {
     ctx.close();
-    return announce("Sharing was cancelled. Press Connect to try again.", { assertive: true });
+    return say("Sharing was cancelled. Press Connect to try again.", { assertive: true });
   }
   const audio = new MeetingAudio(ctx, state.capture.stream, { maxRate: settings.get("catchup.maxRate") });
   wireAudio(audio);
@@ -139,7 +172,7 @@ $("#connect").addEventListener("click", async () => {
   state.stopSlides = watchSlides(state.capture.video, { onChange: onLocalSlideChange });
   state.capture.stream.getVideoTracks()[0].addEventListener("ended", disconnect);
   $("#connect").textContent = "Disconnect";
-  announce("Connected to the meeting.");
+  say("Connected to the meeting.");
 });
 
 function disconnect() {
@@ -149,19 +182,19 @@ function disconnect() {
   Object.assign(state, { capture: null, audio: null, stopSlides: null });
   $("#connect").textContent = "Connect to Zoom tab";
   $("#mode").textContent = "Not connected to Zoom yet.";
-  announce("Disconnected from the meeting.");
+  say("Disconnected from the meeting.");
 }
 
 $("#zoom").addEventListener("submit", async (e) => {
   e.preventDefault();
   const meeting = parseZoomLink($("#zoom-link").value);
-  if (!meeting) return announce("That doesn't look like a Zoom link or meeting ID.", { assertive: true });
+  if (!meeting) return say("That doesn't look like a Zoom link or meeting ID.", { assertive: true });
   try {
     state.helper = await joinAsHelper({ ...meeting, container: $("#zoom-container") });
     state.helper.addEventListener("speaker", (ev) => onSpeaker(ev.detail));
-    announce("Speaker names are on.");
+    say("Speaker names are on.");
   } catch (err) {
-    announce(err.message, { assertive: true });
+    say(err.message, { assertive: true });
   }
 });
 
@@ -171,17 +204,26 @@ function slideSpeech(slide) {
   return [`${slideLabel(slide)}.`, slide.overview || slide.text].filter(Boolean).join(" ");
 }
 
+function describeSlide(slide = state.slide) {
+  if (!slide) return say("No slide yet.");
+  speaker.cancel();
+  state.describing = true;
+  state.manualDescriptionEnd = false;
+  state.audio?.hold();
+  state.manualDescriptionEnd = !speaker.speak(slideSpeech(slide), {
+    onEnd: () => state.describing && stopDescribing(),
+  });
+  renderMode();
+}
+
 function toggleDescribe() {
   if (state.describing) return stopDescribing();
-  if (!state.slide) return announce("No slide yet.");
-  state.describing = true;
-  state.audio?.hold();
-  renderMode();
-  speaker.speak(slideSpeech(state.slide), { onEnd: () => state.describing && stopDescribing() });
+  describeSlide();
 }
 
 function stopDescribing() {
   state.describing = false;
+  state.manualDescriptionEnd = false;
   speaker.cancel();
   state.audio?.catchUp();
   renderMode();
@@ -190,6 +232,7 @@ function stopDescribing() {
 
 function skipToLive() {
   state.describing = false;
+  state.manualDescriptionEnd = false;
   speaker.cancel();
   state.audio?.skipToLive();
   renderMode();
@@ -202,6 +245,7 @@ function requestDescription(note = "") {
 
 function renderMode() {
   const audio = state.audio;
+  $("#screen-reader-help").hidden = !state.manualDescriptionEnd;
   $("#describe").textContent = state.describing ? "Back to presenter" : "Describe slide";
   $("#live").disabled = !audio || audio.mode === "live";
   if (!audio) return;
@@ -228,17 +272,21 @@ const SHORTCUTS = [
   ["KeyD", "Describe the slide, or go back to the presenter", toggleDescribe],
   ["KeyL", "Skip straight to live", skipToLive],
   ["KeyR", "Ask the presenter to describe something", () => requestDescription()],
-  ["KeyA", "Repeat the last alert", () => announce(state.lastAlert || "No alerts yet.")],
-  ["KeyW", "Say who is speaking", () => announce(state.lastSpeaker ? `${state.lastSpeaker} is speaking.` : "No speaker yet.")],
-  ["KeyS", "Say the current slide", () => announce(slideLabel(state.slide))],
+  ["KeyA", "Repeat the last alert", () => say(state.lastAlert || "No alerts yet.")],
+  ["KeyW", "Say who is speaking", () => {
+    const name = speakerAtPlaybackTime();
+    say(name ? `${name} is speaking.` : "No speaker yet.");
+  }],
+  ["KeyS", "Say the current slide", () => say(slideLabel(state.slide))],
   ["KeyQ", "Ask a question about the slides", () => $("#question").focus()],
-  ["KeyH", "Hear all shortcuts", () => announce(SHORTCUTS.map(([code, label]) => `Alt Shift ${code.slice(3)}: ${label}.`).join(" "))],
+  ["KeyH", "Hear all shortcuts", () => say(SHORTCUTS.map(([code, label]) => `Alt Shift ${code.slice(3)}: ${label}.`).join(" "))],
 ];
 
 $("#shortcuts").replaceChildren(...SHORTCUTS.map(([code, label]) => h("li", {}, h("kbd", {}, `Alt+Shift+${code.slice(3)}`), ` ${label}`)));
 
 document.addEventListener("keydown", (e) => {
   if (!e.altKey || !e.shiftKey) return;
+  if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable='true']")) return;
   const match = SHORTCUTS.find(([code]) => code === e.code);
   if (match) {
     e.preventDefault();
@@ -314,7 +362,7 @@ function slideBlock(slide, headingTag) {
     h(headingTag, {}, slideLabel(slide)),
     slide.text && h("p", { class: "pre" }, slide.text),
     slide.visuals && h("p", {}, h("strong", {}, "Visuals: "), slide.visuals),
-    h("button", { onclick: () => speaker.speak(slideSpeech(slide)) }, "Read overview aloud"));
+    h("button", { onclick: () => describeSlide(slide) }, "Read overview aloud"));
 }
 
 function renderSlide() {
@@ -334,13 +382,15 @@ $("#ask").addEventListener("submit", async (e) => {
   e.preventDefault();
   const question = $("#question").value.trim();
   if (!question) return;
-  const answer = h("p", { "aria-live": "polite" }, "Thinking…");
+  const answer = h("p", {}, "Thinking…");
   $("#answers").prepend(h("div", { class: "card" }, h("p", {}, h("strong", {}, "You asked: "), question), answer));
   $("#question").value = "";
   try {
     answer.textContent = (await api(`/api/rooms/${room}/ask`, { method: "POST", json: { question } })).answer;
+    say(`Answer: ${answer.textContent}`);
   } catch (err) {
     answer.textContent = `Sorry, that failed: ${err.message}`;
+    say(answer.textContent, { assertive: true });
   }
 });
 
@@ -354,9 +404,9 @@ function addTranscript(text) {
 // ---------- developer tools ----------
 
 $("#dev-meeting").addEventListener("click", () => {
-  if (state.audio) return announce("Already connected.");
+  if (state.audio) return say("Already connected.");
   wireAudio(new MeetingAudio(new AudioContext(), new MediaStream(), { maxRate: settings.get("catchup.maxRate") }));
-  announce("Simulated meeting connected.");
+  say("Simulated meeting connected.");
 });
 $("#dev-slide").addEventListener("click", () => onLocalSlideChange({ at: Date.now(), frame: new Blob([new Uint8Array([255, 216, 255])], { type: "image/jpeg" }) }));
 $("#dev-speaker").addEventListener("click", () => {

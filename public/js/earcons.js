@@ -1,24 +1,47 @@
-// Owner: Person 3. Placeholder tones. TODO(Person 3): the real knock, falling tone and rising sweep.
+// Owner: Person 3. Short, distinct alerts for listener events.
 import { settings } from "./settings.js";
 
 let ctx;
-function tone(freq, to, dur, start = 0) {
+
+function play(tones) {
   ctx ??= new AudioContext();
-  const t = ctx.currentTime + start;
-  const osc = ctx.createOscillator();
-  const env = ctx.createGain();
-  osc.frequency.setValueAtTime(freq, t);
-  osc.frequency.exponentialRampToValueAtTime(to, t + dur);
-  env.gain.setValueAtTime(0.25, t);
-  env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(env).connect(ctx.destination);
-  osc.start(t);
-  osc.stop(t + dur);
+  const schedule = () => {
+    for (const { from, to, duration, start = 0, type = "sine", volume = 0.12 } of tones) {
+      const at = ctx.currentTime + start;
+      const oscillator = ctx.createOscillator();
+      const envelope = ctx.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(from, at);
+      oscillator.frequency.exponentialRampToValueAtTime(to, at + duration);
+      envelope.gain.setValueAtTime(volume, at);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+      oscillator.connect(envelope).connect(ctx.destination);
+      oscillator.start(at);
+      oscillator.stop(at + duration);
+    }
+  };
+
+  if (ctx.state === "suspended") {
+    ctx.resume().then(schedule).catch((err) => console.warn("Earcon playback failed:", err.message));
+  } else {
+    schedule();
+  }
 }
 
 export const earcons = {
-  slideChanged: () => settings.get("sound.slideChanged") && tone(220, 160, 0.08),
-  presenterQuiet: () => settings.get("sound.presenterQuiet") && tone(660, 300, 0.35),
-  caughtUp: () => settings.get("sound.caughtUp") && (tone(440, 660, 0.14), tone(660, 990, 0.18, 0.16)),
-  attention: () => (tone(880, 880, 0.1), tone(880, 880, 0.1, 0.18)),
+  slideChanged: () => settings.get("sound.slideChanged") && play([
+    { from: 190, to: 150, duration: 0.07, type: "triangle", volume: 0.16 },
+    { from: 145, to: 115, duration: 0.09, start: 0.11, type: "triangle", volume: 0.12 },
+  ]),
+  presenterQuiet: () => settings.get("sound.presenterQuiet") && play([
+    { from: 680, to: 340, duration: 0.36, volume: 0.1 },
+  ]),
+  caughtUp: () => settings.get("sound.caughtUp") && play([
+    { from: 440, to: 660, duration: 0.14, volume: 0.1 },
+    { from: 660, to: 990, duration: 0.18, start: 0.16, volume: 0.1 },
+  ]),
+  attention: () => play([
+    { from: 880, to: 880, duration: 0.08, volume: 0.1 },
+    { from: 880, to: 880, duration: 0.08, start: 0.16, volume: 0.1 },
+  ]),
 };
