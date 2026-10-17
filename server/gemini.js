@@ -53,7 +53,8 @@ export async function matchSlide(jpeg, slides) {
 }
 
 // JPEG bytes -> { isSharedContent, title, slideNumber, text, visuals, overview }
-// Uses the fast model: live screenshots need speed, and it matched the main model on our test set.
+// Uses the main model. The fast model was 2 s quicker but miscounted people in a photo on every run
+// and leaked the title into the spoken text. Descriptions are made in the background, so 3 to 4 s is fine.
 export async function describeFrame(jpeg) {
   if (useMock) return mock.describeFrame(jpeg);
   const schema = {
@@ -61,7 +62,7 @@ export async function describeFrame(jpeg) {
     properties: { isSharedContent: { type: Type.BOOLEAN }, ...SLIDE_FIELDS },
     required: ["isSharedContent", ...Object.keys(SLIDE_FIELDS)],
   };
-  return generateJson(models.fast, [inline(jpeg, "image/jpeg"), { text: prompts.DESCRIBE_FRAME }], schema);
+  return generateJson(models.main, [inline(jpeg, "image/jpeg"), { text: prompts.DESCRIBE_FRAME }], schema);
 }
 
 // WAV bytes -> transcript text, or "" for no speech
