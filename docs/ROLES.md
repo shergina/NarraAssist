@@ -132,9 +132,10 @@ The skeleton already has every file, each with its owner at the top. Stubs are m
 **Build, in this order.**
 
 1. **Zoom app, first hour.** Create a General app on the Zoom Marketplace with the Meeting SDK turned on, using the same Zoom account that will host the demo meeting. Put its keys in `.env` as `ZOOM_SDK_KEY` and `ZOOM_SDK_SECRET`. The `@zoom/meetingsdk` package is approved for this lane.
-2. **Zoom lab.** `server/zoom.js` signs the join token with Node's built-in crypto, no extra package. The lab page joins a team-hosted meeting as "Accessibility helper" and logs every SDK event. It must answer two questions, and the answers go in docs/DECISIONS.md:
+2. **Zoom lab, one hour, time-boxed.** `server/zoom.js` signs the join token with Node's built-in crypto, no extra package. The lab page joins a team-hosted meeting under the tester's own name and logs every SDK event. It must answer three questions, and the answers go in docs/DECISIONS.md:
    - Do active-speaker events arrive with display names, and is there a screen-sharing event?
-   - If the listener joins only through the SDK inside our page, can we mute the SDK's own sound and still capture the meeting audio? If yes, the team can switch to one tab with no Zoom web client.
+   - Does muting and unmuting from the lab page change the tester's mute state in the meeting? Someone else in the meeting should see the icon flip.
+   - Can the lab's connection keep its speaker off while its microphone stays on, so the meeting is not heard twice? If not, try joining with microphone only. If neither works after the hour, record it and move on: the listener switches to the Zoom tab to talk.
 3. **Zoom module.** `zoom-helper.js`, exactly as specified under "Browser modules" in ARCHITECTURE.md: `joinMeeting` under the listener's own name, `setMuted`, and the `muted`, `speaker` and `share` events. The earlier "Accessibility helper" participant is gone: Zoom's terms don't allow a silent bot, and the listener joining as themselves is an ordinary second device.
 4. **Presenter page.** Cue cards labeled with the cue type and whether it came from the AI or a listener request. Notifications and vibration. PDF upload. Manual previous and next slide controls.
 5. **Demo.** A deck with a chart, a photo and a dense text slide. The script in DEMO.md. A backup screen recording. The pitch.
