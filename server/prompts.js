@@ -13,7 +13,8 @@ the percent sign and "dollars" instead of the dollar sign. Use only what
 is visible in the image. Never invent text, numbers, or details.`;
 
 // Describe whatever is being shared in a screenshot of the meeting window.
-// Validated on 2026-10-17 against five Zoom screenshots with video tiles, icons, a photo and an embedded window.
+// Validated on 2026-10-17 against seven Zoom screenshots: video tiles, icons, a photo, an embedded window,
+// a pie chart with small labels, and a gallery view with nothing shared.
 export const DESCRIBE_FRAME = `You are helping a blind or low-vision person follow a video meeting.
 This image is a screenshot of the meeting window. Someone may be sharing
 a slide, a document, a website, or other content.
@@ -54,7 +55,8 @@ leave this empty.
 overview: the slide read aloud, for someone who cannot see it. All of
 the slide's text, word for word, in reading order. Never include the
 title, because it is announced separately before this is read. Do not
-summarize, shorten, reorder, or add commentary. Where a chart,
+summarize, shorten, reorder, or add commentary. Read misspelled words
+as written, without pointing out the spelling. Where a chart,
 diagram, photo, illustration, screenshot, or table appears in the
 reading order, insert its description at that point, beginning with
 one of these exact markers followed by a colon: "Image:", "Chart:",
