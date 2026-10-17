@@ -8,21 +8,24 @@ const SLIDES = [
     title: "Welcome to ZoomInSight",
     text: "Following presentations without seeing the screen\nDubHacks 2026",
     visuals: "",
-    overview: "This is the title slide. The talk is about following presentations without seeing the screen.",
+    overview: "Following presentations without seeing the screen. DubHacks 2026.",
+    summary: "Summary: Following presentations without seeing the screen. DubHacks 2026.",
   },
   {
     number: 2,
     title: "Quarterly revenue",
     text: "Revenue by quarter, in millions of dollars",
     visuals: "A bar chart with four bars. Q1 is 2.1 million, Q2 is 2.4, Q3 is 3.0 and Q4 is 3.6. Each quarter is higher than the last.",
-    overview: "Revenue grew every quarter this year, from 2.1 million dollars in Q1 to 3.6 million in Q4.",
+    overview: "Revenue by quarter, in millions of dollars. Chart: A bar chart with four bars. Q1 is 2.1 million, Q2 is 2.4, Q3 is 3.0 and Q4 is 3.6. Each quarter is higher than the last.",
+    summary: "Summary: Revenue grew every quarter, from 2.1 million dollars in Q1 to 2.4, 3.0 and 3.6 million in Q4. Chart: a bar chart of the four quarters.",
   },
   {
     number: 3,
     title: "Meet the team",
     text: "Four students from the University of Washington",
     visuals: "A photo of four people standing in front of a whiteboard, smiling.",
-    overview: "This slide introduces the team: four University of Washington students, shown in a group photo.",
+    overview: "Four students from the University of Washington. Photo: four people standing in front of a whiteboard, smiling.",
+    summary: "Summary: Four students from the University of Washington. Photo: the four of them in front of a whiteboard.",
   },
 ];
 
@@ -51,8 +54,8 @@ export async function matchSlide(jpeg, slides) {
 
 export async function describeFrame() {
   await wait(800);
-  const { title, text, visuals, overview } = SLIDES[frames++ % SLIDES.length];
-  return { isSharedContent: true, title, text, visuals, overview };
+  const { number, title, text, visuals, overview, summary } = SLIDES[frames++ % SLIDES.length];
+  return { isSharedContent: true, title, slideNumber: number, text, visuals, overview, summary };
 }
 
 export async function transcribe() {

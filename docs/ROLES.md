@@ -6,10 +6,10 @@ The exact shapes of everything that crosses between lanes, including routes, mes
 
 | Lane | Person | Name |
 |---|---|---|
-| AI brain | Person 1 | _fill in_ |
-| Live audio | Person 2 | _fill in_ |
-| Listener experience | Person 3 | _fill in_ |
-| Presenter, Zoom and demo | Person 4 | _fill in_ |
+| AI brain | Person 1 | Maria |
+| Live audio | Person 2 | Anika |
+| Listener experience | Person 3 | Tanishka |
+| Presenter, Zoom and demo | Person 4 | Saanvi |
 
 ## Starting an AI session
 
@@ -103,7 +103,9 @@ The skeleton already has every file, each with its owner at the top. Stubs are m
 1. **Announcement queue.** All speech and screen reader announcements go through `speech.js`. Nothing speaks over a slide description. During a description the earcon plays and the words wait. Alt+Shift+A repeats the last alert.
 2. **Wire up the audio engine.** Describe, back to presenter, skip to live, and a status line saying live, paused or catching up and how far behind.
 3. **Slide changes.** Follow the rules under "What the listener hears" in ARCHITECTURE.md: knock on the local change, post the frame, update the content silently when the description arrives.
-4. **Speaker names.** A field for the Zoom meeting link. Person 4's helper sends speaker events. Announce names following the timing rules in ARCHITECTURE.md.
+4. **Speaker names and mute.** Fields for the Zoom meeting link and the listener's name. Person 4's `joinMeeting` sends speaker events and carries the microphone. Announce names following the timing rules in ARCHITECTURE.md. Add a Mute button and Alt+Shift+M, announcing "Muted" and "Unmuted" from the `muted` event.
+4b. **Floating video.** With the `video.float` setting on (the default), show the captured Zoom video picture-in-picture when capture starts, with a shortcut to toggle it.
+4c. **Fallback test, with a screen reader on.** From our page, switch to the Zoom tab, unmute with Zoom's shortcut, talk, mute, switch back, on a Mac and on Windows. Note what the screen reader says at each step and confirm our descriptions and sounds keep playing while the Zoom tab has focus. Write the exact keys into the onboarding text and the result into docs/DECISIONS.md.
 5. **Settings.** On by default, each one can be turned off: every earcon, speaker names, slide titles. Also voice speed, catch-up speed cap, built-in voice or own screen reader. Saved in the browser.
 6. **Every shortcut** in the PRODUCT.md table, including Alt+Shift+H to hear them all.
 7. **Slide review and Q&A** screens.
@@ -130,15 +132,16 @@ The skeleton already has every file, each with its owner at the top. Stubs are m
 **Build, in this order.**
 
 1. **Zoom app, first hour.** Create a General app on the Zoom Marketplace with the Meeting SDK turned on, using the same Zoom account that will host the demo meeting. Put its keys in `.env` as `ZOOM_SDK_KEY` and `ZOOM_SDK_SECRET`. The `@zoom/meetingsdk` package is approved for this lane.
-2. **Zoom lab.** `server/zoom.js` signs the join token with Node's built-in crypto, no extra package. The lab page joins a team-hosted meeting as "Accessibility helper" and logs every SDK event. It must answer two questions, and the answers go in docs/DECISIONS.md:
+2. **Zoom lab, one hour, time-boxed.** `server/zoom.js` signs the join token with Node's built-in crypto, no extra package. The lab page joins a team-hosted meeting under the tester's own name and logs every SDK event. It must answer three questions, and the answers go in docs/DECISIONS.md:
    - Do active-speaker events arrive with display names, and is there a screen-sharing event?
-   - If the listener joins only through the SDK inside our page, can we mute the SDK's own sound and still capture the meeting audio? If yes, the team can switch to one tab with no Zoom web client.
-3. **Zoom helper module.** `zoom-helper.js`, exactly as specified under "Browser modules" in ARCHITECTURE.md.
+   - Does muting and unmuting from the lab page change the tester's mute state in the meeting? Someone else in the meeting should see the icon flip.
+   - Can the lab's connection keep its speaker off while its microphone stays on, so the meeting is not heard twice? If not, try joining with microphone only. If neither works after the hour, record it and move on: the listener switches to the Zoom tab to talk.
+3. **Zoom module.** `zoom-helper.js`, exactly as specified under "Browser modules" in ARCHITECTURE.md: `joinMeeting` under the listener's own name, `setMuted`, and the `muted`, `speaker` and `share` events. The earlier "Accessibility helper" participant is gone: Zoom's terms don't allow a silent bot, and the listener joining as themselves is an ordinary second device.
 4. **Presenter page.** Cue cards labeled with the cue type and whether it came from the AI or a listener request. Notifications and vibration. PDF upload. Manual previous and next slide controls.
 5. **Demo.** A deck with a chart, a photo and a dense text slide. The script in DEMO.md. A backup screen recording. The pitch.
 6. **Then help Person 2.** Pair on whatever is riskiest in live audio.
 
-**Provides.** `zoom-helper.js` and `POST /api/zoom/signature`.
+**Provides.** `zoom-helper.js` (`joinMeeting`, `setMuted`, events) and `POST /api/zoom/signature`.
 
 **Uses.** Person 1's routes and messages. Person 3's `speech.js` and `earcons.js` for presenter alerts.
 
@@ -183,6 +186,7 @@ Nobody owns these until their own lane is done. Claim one in the team chat befor
 
 - Match frames to PDF pages locally with pdf.js thumbnails instead of Gemini. Needs the team's OK for the dependency.
 - Gemini text-to-speech audio for slide overviews.
+- Summary mode toggle (Person 3): the `summary` field already comes back from the server. Add the `describe.mode` setting and a full-read shortcut, per ARCHITECTURE.md.
 - Gemini Live API for faster transcription.
 - Export the transcript and slide descriptions to a Google Doc after the meeting.
 - Pull lecture slides from Canvas or Google Classroom.

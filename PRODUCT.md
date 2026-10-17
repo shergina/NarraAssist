@@ -95,6 +95,8 @@ Draft shortcuts for the listener page:
 | Say who is speaking | Alt+Shift+W |
 | Say the current slide's title and number | Alt+Shift+S |
 | Ask a question about the slides | Alt+Shift+Q |
+| Mute or unmute my microphone | Alt+Shift+M |
+| Show or hide the floating Zoom video | Alt+Shift+V |
 | Hear all shortcuts | Alt+Shift+H |
 
 On a Mac, Alt is the Option key.
@@ -124,6 +126,7 @@ The detailed wiring is in docs/ARCHITECTURE.md and the reasons in docs/DECISIONS
 ### Shape
 
 - A web app: two plain HTML pages and a Node server, all in plain JavaScript, no build step. Works the same on macOS and Windows.
+- Two tabs: the Zoom tab is only for listening, our page is where the listener works. Our page also joins the meeting under the listener's name to carry their microphone, so they never switch tabs to talk. By default the Zoom video floats over other tabs as a small picture-in-picture window, which low-vision listeners can turn off.
 - The listener joins Zoom with "Join from your browser" in Chrome and connects our page to that tab. Chrome hands us the slides and the audio, and stops the Zoom tab from playing sound itself, so our page controls everything the listener hears.
 - The server holds the Gemini key and does all the AI work. The browser does everything that has to be instant.
 
@@ -136,7 +139,7 @@ The detailed wiring is in docs/ARCHITECTURE.md and the reasons in docs/DECISIONS
 | Slides before the meeting | Presenter uploads a PDF | Reads every page into text, visual descriptions and an overview, with structured output. Answers questions with the deck cached |
 | Presenter cues | Server checks every 15 seconds | Classifies the last minute of transcript plus the current slide into: describe visuals, share the file, describe yourself, or nothing. Dismissed cues are fed back so it doesn't nag |
 | Transcript | Browser streams 16 kHz audio, server sends 6-second chunks | Transcribes each chunk |
-| Speaker names | The listener page joins the meeting through the Zoom Meeting SDK as a visible "Accessibility helper" participant and receives active-speaker events with display names | None. Fallback if the SDK fails: Gemini reads the name off the highlighted tile in a screenshot |
+| Speaker names and mute | The listener page joins the meeting through the Zoom Meeting SDK under the listener's own name, microphone on and speaker off. It receives active-speaker events with display names and carries the listener's microphone, so mute is a shortcut on our page | None. Fallback if the SDK fails: Gemini reads the name off the highlighted tile, and the listener switches to the Zoom tab to talk |
 | No deck uploaded | Same as above, minus the PDF | Describes the shared screen directly |
 | Earcons, shortcuts, settings | Browser only | None |
 

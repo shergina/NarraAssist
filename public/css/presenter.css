@@ -1,2 +1,7 @@
 /* Owner: Person 4. Styles for the presenter page only. */
 .card .source { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+
+/* The shared .row sets display:flex, which would otherwise override the hidden attribute. */
+.row[hidden], .preview[hidden] { display: none; }
+
+.preview { display: block; width: 100%; height: 30rem; margin: 0.75rem 0; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--bg); }

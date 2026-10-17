@@ -31,17 +31,28 @@
       <p id="deck-status" class="muted">Optional: upload your deck as a PDF so attendees can review it.</p>
       <label>Slide deck (PDF) <input id="deck" type="file" accept="application/pdf"></label>
       <h3>Current slide</h3>
-      <p id="current" class="status">Not set</p>
+      <p id="current" class="status" role="status">Not set</p>
       <div class="row">
         <button id="prev" disabled>Previous slide</button>
         <button id="next" disabled>Next slide</button>
         <label>Go to <select id="jump" disabled></select></label>
       </div>
+      <p class="muted">These buttons change the live slide that attendees are told about.</p>
+
+      <h3>Slide preview</h3>
+      <p id="preview-status" class="status" role="status" hidden></p>
+      <div id="preview-controls" class="row" role="group" aria-label="Browse the preview. This does not change the live slide." hidden>
+        <button id="pv-prev" type="button">Preview: back</button>
+        <button id="pv-next" type="button">Preview: forward</button>
+        <button id="pv-live" type="button">Back to live slide</button>
+      </div>
+      <iframe id="preview" class="preview" title="Preview of your slides" hidden></iframe>
+      <p><a id="open-preview" href="#" target="_blank" rel="noopener" hidden>Open slides in a new tab</a></p>
     </section>
 
     <section aria-labelledby="transcript-h">
       <h2 id="transcript-h">What the tool heard</h2>
-      <div id="transcript" class="transcript" tabindex="0" aria-label="Transcript"></div>
+      <div id="transcript" class="transcript" role="region" aria-label="Transcript" tabindex="0"></div>
     </section>
   </main>
   <script type="module" src="/js/presenter.js"></script>
