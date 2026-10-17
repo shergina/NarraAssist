@@ -7,6 +7,9 @@ import { announce } from "./speech.js";
 const room = roomCode();
 const state = { slides: [], current: null };
 const cards = new Map();
+let previewUrl = null; // local link to the PDF the presenter picked, never uploaded anywhere
+let shownPage = null; // slide currently showing in the preview
+let browsing = false; // true while the preview is on a different slide than the live one
 const CUE_TITLES = {
   visuals: "Describe what's on screen?",
   "share-file": "Share the file in the chat?",
@@ -22,10 +25,10 @@ const socket = connectSocket(room, "presenter", {
 function onMessage(msg) {
   switch (msg.type) {
     case "state":
-      state.slides = msg.state.slides;
-      state.current = msg.state.current;
+      state.slides = msg.state.slides || [];
+      state.current = msg.state.current ?? null;
       renderDeck(msg.state.deck);
-      $("#transcript").replaceChildren(...msg.state.transcript.map((t) => h("p", {}, t.text)));
+      $("#transcript").replaceChildren(...(msg.state.transcript || []).map((t) => h("p", {}, t.text)));
       break;
     case "deck":
       if (msg.slides) state.slides = msg.slides;
@@ -83,7 +86,12 @@ function addCard(id, { source, title, lines, accept, dismiss }) {
   announce(title, { assertive: true });
   if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.([150, 80, 150]);
   if (document.hidden && "Notification" in window && Notification.permission === "granted") {
-    new Notification(title, { body: lines.filter(Boolean).join(" "), tag: id });
+    try {
+      new Notification(title, { body: lines.filter(Boolean).join(" "), tag: id });
+    } catch {
+      // Some phone browsers only allow notifications through a service worker.
+      // The card, sound and vibration above still work.
+    }
   }
 }
 
@@ -102,31 +110,96 @@ $("#notify").addEventListener("click", async () => {
 $("#deck").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
+  if (file.type === "application/pdf") showPreview(file);
   try {
     await api(`/api/rooms/${room}/deck`, { method: "POST", body: file, headers: { "Content-Type": "application/pdf", "X-File-Name": encodeURIComponent(file.name) } });
   } catch (err) {
     $("#deck-status").textContent = `Upload failed: ${err.message}`;
+    announce(`Upload failed: ${err.message}`);
   }
 });
 
-function renderDeck(deck) {
+function renderDeck(deck = { status: "none" }) {
   $("#deck-status").textContent = {
     none: "Optional: upload your deck as a PDF so attendees can review it.",
     processing: `Preparing ${deck.fileName}…`,
     ready: `${deck.fileName}: ${deck.slideCount} slides ready for attendees.`,
     error: `Couldn't read the slides: ${deck.error}`,
-  }[deck.status];
+  }[deck.status] ?? "";
   $("#jump").replaceChildren(...state.slides.map((s) => h("option", { value: s.number }, slideLabel(s))));
   $("#jump").disabled = $("#prev").disabled = $("#next").disabled = state.slides.length === 0;
   renderCurrent();
 }
 
+// The preview shows the chosen PDF one slide at a time. It runs entirely in the
+// browser, so it works even if the upload fails. It follows the live slide until
+// the presenter browses with the preview buttons, then stays put until they press
+// "Back to live slide".
+const liveSlide = () => state.current?.number || 1;
+const totalSlides = () => state.slides.length || 1;
+
+function showPreview(file) {
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = URL.createObjectURL(file);
+  shownPage = null;
+  browsing = false;
+  for (const id of ["#preview", "#preview-status", "#preview-controls", "#open-preview"]) $(id).hidden = false;
+  updatePreview();
+}
+
+function showPage(page) {
+  if (!previewUrl) return;
+  const target = Math.min(Math.max(page, 1), totalSlides());
+  if (target !== shownPage) {
+    shownPage = target;
+    // A new frame each time, so the viewer always jumps to the page.
+    const frame = $("#preview");
+    const fresh = frame.cloneNode(false);
+    fresh.hidden = false;
+    fresh.src = `${previewUrl}#page=${target}&view=Fit&toolbar=0&navpanes=0&scrollbar=0`;
+    frame.replaceWith(fresh);
+    $("#open-preview").href = `${previewUrl}#page=${target}`;
+  }
+  updatePreviewControls();
+}
+
+function updatePreviewControls() {
+  const live = liveSlide();
+  const where = `slide ${shownPage} of ${totalSlides()}`;
+  $("#preview-status").textContent = shownPage === live ? `Previewing ${where}, the live slide.` : `Previewing ${where}. The live slide is ${live}.`;
+  $("#pv-prev").disabled = shownPage <= 1;
+  $("#pv-next").disabled = shownPage >= totalSlides();
+  $("#pv-live").disabled = shownPage === live;
+}
+
+function updatePreview() {
+  if (!previewUrl) return;
+  if (browsing) updatePreviewControls();
+  else showPage(liveSlide());
+}
+
+function browse(delta) {
+  if (!previewUrl) return;
+  const target = Math.min(Math.max((shownPage ?? liveSlide()) + delta, 1), totalSlides());
+  browsing = target !== liveSlide();
+  showPage(target);
+}
+
 function renderCurrent() {
   $("#current").textContent = state.current ? slideLabel(state.current) : "Not set";
   if (state.current?.number) $("#jump").value = state.current.number;
+  updatePreview();
 }
 
 const goTo = (number) => state.slides.some((s) => s.number === number) && socket.send({ type: "set-slide", number });
 $("#prev").addEventListener("click", () => goTo((state.current?.number ?? 2) - 1));
 $("#next").addEventListener("click", () => goTo((state.current?.number ?? 0) + 1));
 $("#jump").addEventListener("change", (e) => goTo(Number(e.target.value)));
+
+// Preview-only buttons. These never change the live slide for attendees.
+$("#pv-prev").addEventListener("click", () => browse(-1));
+$("#pv-next").addEventListener("click", () => browse(1));
+$("#pv-live").addEventListener("click", () => {
+  browsing = false;
+  showPage(liveSlide());
+});

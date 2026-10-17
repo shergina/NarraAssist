@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zoom Lab (Test Tool) · ZoomInSight</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body { padding: 2rem; max-width: 800px; margin: 0 auto; font-family: system-ui, sans-serif; }
+    .box { border: 1px solid #ccc; padding: 1.5rem; margin-top: 1.5rem; border-radius: 8px; }
+    .log-window { background: #1e1e1e; color: #00ff00; padding: 1rem; font-family: monospace; height: 150px; overflow-y: auto; margin-top: 1rem; border-radius: 4px; }
+    .log-window div { white-space: pre-wrap; }
+    input[type="text"] { width: 100%; padding: 0.5rem; margin: 0.5rem 0 1rem 0; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Zoom Integration Lab</h1>
+    <p class="muted">Use this page to check link parsing, the Zoom helper, and the speaker and share events.</p>
+
+    <section class="box" aria-labelledby="h-parse">
+      <h2 id="h-parse">1. Test link parser</h2>
+      <label for="link-input">Paste a Zoom invite link or meeting ID:</label>
+      <input type="text" id="link-input" placeholder="https://zoom.us/j/12345678901?pwd=abc123">
+      <button id="btn-parse" class="primary" type="button">Parse connection data</button>
+      <p id="parse-output" class="status" role="status" style="margin-top: 1rem; font-weight: bold;"></p>
+    </section>
+
+    <section class="box" aria-labelledby="h-join">
+      <h2 id="h-join">2. Mount helper</h2>
+      <p>
+        <input type="checkbox" id="chk-mock">
+        <label for="chk-mock">Use fake helper (no Zoom, no keys needed)</label>
+      </p>
+      <button id="btn-join" class="primary" type="button" disabled>Mount Zoom helper</button>
+      <button id="btn-leave" type="button" style="margin-left: 0.5rem;">Disconnect</button>
+
+      <div id="zoom-container" style="margin-top: 1rem;">
+        <p class="muted">Nothing mounted.</p>
+      </div>
+    </section>
+
+    <section class="box" aria-labelledby="h-events">
+      <h2 id="h-events">3. Simulate events</h2>
+      <p class="muted">Trigger events by hand to check the event layer. These need a mounted helper, real or fake.</p>
+      <button id="btn-mock-speaker" type="button">Emit speaker: Dr. Aris</button>
+      <button id="btn-mock-share" type="button">Toggle screen share (now: off)</button>
+
+      <div id="log" class="log-window" role="log" aria-label="Event log"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/js/zoom-lab.js"></script>
+</body>
+</html>
