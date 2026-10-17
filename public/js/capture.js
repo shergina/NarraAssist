@@ -37,7 +37,8 @@ const CHANGED_MIN = 6; // and at least this many, so a mouse pointer never count
 const STILL_SHARE = 0.004; // at most this share of watched cells may still be changing when settled
 const MAX_FRAME_WIDTH = 1280;
 
-// onChange({ at, frame }) once each time the shared screen changes and then holds still for about 1 second.
+// onChange({ at, frame }) once each time the shared screen changes and then holds still for about 1 second,
+// and once for the screen already showing when watching starts, so there is a slide to describe right away.
 // frame is a JPEG Blob of the shared-content area only. Never calls the server, never plays sounds.
 // onTick (optional, for the audio lab) gets { box, watched, changed, moving, settling } on every check.
 export function watchSlides(video, { onChange, onTick } = {}) {
@@ -52,6 +53,7 @@ export function watchSlides(video, { onChange, onTick } = {}) {
   let motion = null; // per cell
   let startedAt = 0;
   let stillFor = 0;
+  let first = true; // the screen showing at the start hasn't been reported yet
   let stopped = false;
 
   function reset(width, height) {
@@ -63,6 +65,7 @@ export function watchSlides(video, { onChange, onTick } = {}) {
     motion = new Float32Array(cols * rows);
     startedAt = performance.now();
     stillFor = 0;
+    first = true;
   }
 
   function luminance() {
@@ -156,7 +159,7 @@ export function watchSlides(video, { onChange, onTick } = {}) {
         if (fromPrev[i] > CELL_CHANGED) moving++;
       }
     }
-    const settling = changed >= Math.max(CHANGED_MIN, watched * CHANGED_SHARE);
+    const settling = first || changed >= Math.max(CHANGED_MIN, watched * CHANGED_SHARE);
     if (!settling) stillFor = 0;
     else if (moving > watched * STILL_SHARE) stillFor = 0;
     else stillFor += TICK_MS;
@@ -164,6 +167,7 @@ export function watchSlides(video, { onChange, onTick } = {}) {
     if (settling && stillFor >= SETTLE_MS) {
       ref = cur;
       stillFor = 0;
+      first = false;
       emit(box);
     }
   }
