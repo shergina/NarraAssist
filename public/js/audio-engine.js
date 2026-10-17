@@ -160,7 +160,6 @@ export class MeetingAudio extends EventTarget {
     } else if (msg.type === "caught-up") {
       if (msg.seq !== this.#seq || this.mode !== "catchup") return; // the listener pressed something since
       this.#heldAt = null;
-      this.#status = null;
       this.mode = "live";
       this.dispatchEvent(new CustomEvent("mode", { detail: "live" }));
       this.dispatchEvent(new Event("caught-up"));

@@ -25,16 +25,20 @@
   <main>
     <section aria-labelledby="source-h">
       <h2 id="source-h">Source</h2>
-      <p class="muted">Open a tab with talking in it: the Zoom web client, or a YouTube lecture. Press Capture, pick that tab, and turn on "Also share tab audio". The tab goes quiet and this page plays it instead.</p>
+      <p class="muted">Three ways to feed the engine. <strong>Capture a tab</strong>: pick a tab with talking in it (the Zoom web client or a YouTube lecture) and turn on "Also share tab audio"; that tab goes quiet and this page plays it instead. <strong>Simulated meeting</strong>: a made-up voice with short and long pauses, and a made-up shared screen with slides and a moving camera tile; nothing to set up. <strong>Audio file</strong>: the same simulated screen, with a recording of your choice as the voice.</p>
       <div class="row">
         <button id="capture" class="primary">Capture a tab</button>
+        <button id="simulate">Simulated meeting</button>
+        <label>Audio file
+          <input id="file" type="file" accept="audio/*,video/*">
+        </label>
       </div>
       <p id="source" class="status">Nothing captured.</p>
     </section>
 
     <section aria-labelledby="controls-h">
       <h2 id="controls-h">Controls</h2>
-      <p class="muted">Shortcuts: H hold, U catch up, L skip to live, T run the 30-second test.</p>
+      <p class="muted">Shortcuts: H hold, U catch up, L skip to live, T run the 30-second test, N next simulated slide, Q make the simulated presenter go quiet.</p>
       <div class="row">
         <button id="hold" disabled>Hold</button>
         <button id="catchup" disabled>Catch up</button>
@@ -76,6 +80,11 @@
     <section aria-labelledby="slides-h">
       <h2 id="slides-h">Slide watching</h2>
       <p id="slides" class="status">Not watching.</p>
+      <div class="row">
+        <button id="next-slide" disabled>Next simulated slide</button>
+        <button id="go-quiet" disabled>Simulated presenter goes quiet for 4 s</button>
+      </div>
+      <canvas id="sim-screen" width="1280" height="720" style="max-width: 100%; border: 1px solid var(--border); border-radius: 0.5rem" aria-label="The simulated shared screen" hidden></canvas>
       <p id="crop" class="muted"></p>
       <img id="frame" alt="The last frame sent on a slide change" hidden>
     </section>

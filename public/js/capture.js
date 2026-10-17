@@ -20,7 +20,7 @@ export async function startCapture() {
 
 // Slide watching works on a small grayscale copy of the video split into a grid of cells.
 // Cells that keep changing are live video (camera tiles, a playing clip) and are ignored.
-// Strips of them along the edges are cropped off, which leaves the shared content.
+// Strips of them near the edges are cropped off, which leaves the shared content.
 // A slide change is many still cells changing from the last settled screen, then holding still.
 const AW = 256; // analysis width in pixels
 const CELL = 8; // cell size in analysis pixels
@@ -31,7 +31,8 @@ const PIXEL_DIFF = 24; // brightness change, 0 to 255, that counts as a changed 
 const CELL_CHANGED = 0.06; // share of a cell's pixels that must change for the cell to count
 const MOTION_DECAY = 0.85; // per tick; a cell that changes on every tick tends to 1
 const MOVING = 0.3; // motion score above which a cell is live video
-const EDGE_MOVING = 0.2; // an edge row or column with this share of moving cells is cropped off
+const EDGE_REACH = 0.4; // camera strips are looked for this far in from each edge
+const STRIP_CELLS = 2; // a column or row with this many moving cells is part of a camera strip
 const CHANGED_SHARE = 0.015; // share of watched cells that must differ from the settled screen
 const CHANGED_MIN = 6; // and at least this many, so a mouse pointer never counts
 const STILL_SHARE = 0.004; // at most this share of watched cells may still be changing when settled
@@ -90,27 +91,41 @@ export function watchSlides(video, { onChange, onTick } = {}) {
     return out;
   }
 
-  // Shrinks the full frame by peeling off edge rows and columns that are mostly live video.
+  // Crops off strips of live video near the edges (Zoom's camera tiles), margins included:
+  // any column or row near an edge with moving cells in it is cut, along with everything outside it.
+  // Columns-then-rows and rows-then-columns are both tried, and the bigger box wins, so a strip
+  // down one side isn't mistaken for one across the top.
   function contentBox() {
-    const box = { c0: 0, r0: 0, c1: cols, r1: rows }; // c1 and r1 are exclusive
-    const share = (c0, r0, c1, r1) => {
-      let n = 0;
-      let moving = 0;
-      for (let r = r0; r < r1; r++) for (let c = c0; c < c1; c++, n++) if (motion[r * cols + c] > MOVING) moving++;
-      return n ? moving / n : 0;
+    const moving = (c, r) => motion[r * cols + c] > MOVING;
+    const cropCols = (box) => {
+      const reach = Math.floor(cols * EDGE_REACH);
+      for (let c = 0; c < reach; c++) if (countCol(c, box) >= STRIP_CELLS) box.c0 = c + 1;
+      for (let c = cols - 1; c >= cols - reach; c--) if (countCol(c, box) >= STRIP_CELLS) box.c1 = Math.min(box.c1, c);
     };
-    while (box.c1 - box.c0 > 4 && box.r1 - box.r0 > 4) {
-      const edges = [
-        ["r0", share(box.c0, box.r0, box.c1, box.r0 + 1)],
-        ["r1", share(box.c0, box.r1 - 1, box.c1, box.r1)],
-        ["c0", share(box.c0, box.r0, box.c0 + 1, box.r1)],
-        ["c1", share(box.c1 - 1, box.r0, box.c1, box.r1)],
-      ].sort((a, b) => b[1] - a[1]);
-      if (edges[0][1] < EDGE_MOVING) break;
-      const side = edges[0][0];
-      box[side] += side.endsWith("0") ? 1 : -1;
-    }
-    return box;
+    const cropRows = (box) => {
+      const reach = Math.floor(rows * EDGE_REACH);
+      for (let r = 0; r < reach; r++) if (countRow(r, box) >= STRIP_CELLS) box.r0 = r + 1;
+      for (let r = rows - 1; r >= rows - reach; r--) if (countRow(r, box) >= STRIP_CELLS) box.r1 = Math.min(box.r1, r);
+    };
+    const countCol = (c, box) => {
+      let n = 0;
+      for (let r = box.r0; r < box.r1; r++) if (moving(c, r)) n++;
+      return n;
+    };
+    const countRow = (r, box) => {
+      let n = 0;
+      for (let c = box.c0; c < box.c1; c++) if (moving(c, r)) n++;
+      return n;
+    };
+    const a = { c0: 0, r0: 0, c1: cols, r1: rows }; // c1 and r1 are exclusive
+    cropCols(a);
+    cropRows(a);
+    const b = { c0: 0, r0: 0, c1: cols, r1: rows };
+    cropRows(b);
+    cropCols(b);
+    const area = (x) => Math.max(0, x.c1 - x.c0) * Math.max(0, x.r1 - x.r0);
+    const best = area(a) >= area(b) ? a : b;
+    return best.c1 - best.c0 >= 4 && best.r1 - best.r0 >= 4 ? best : { c0: 0, r0: 0, c1: cols, r1: rows };
   }
 
   async function emit(box) {
