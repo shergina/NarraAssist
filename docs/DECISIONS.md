@@ -41,3 +41,6 @@ One line per decision, newest at the bottom, with the reason. Add to it when the
 | Oct 17 | Mock Gemini is the default in `.env.example`; Person 1 switches to live | Everyone can run the app the moment they clone it. |
 | Oct 17 | The listener page has a Developer tools panel that simulates the other lanes | Each lane can test its own work without waiting for the others. |
 | Oct 17 | `server/zoom.js` is mounted from the start | Person 4 never has to edit Person 1's files. |
+| Oct 17 | Screenshots and the PDF both use the main model (Flash), not Flash-Lite | Flash-Lite was 2 s faster but, on repeated runs, miscounted the people in a photo every time and leaked the title into the spoken text. With the model's thinking turned off it takes about 2.5 s, as fast as Flash-Lite, and stayed accurate on repeated runs. |
+| Oct 17 | "Describe" reads the slide word for word with image descriptions inserted in reading order, marked "Image:" and similar. No summarizing by default | The listener should hear exactly what is on the slide. A paraphrase can drift, and the listener can't check it. |
+| Oct 17 | A shorter summary mode is a later optional setting, off by default | For speed on dense slides, chosen by the user, never silently. |

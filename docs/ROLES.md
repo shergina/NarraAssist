@@ -183,6 +183,7 @@ Nobody owns these until their own lane is done. Claim one in the team chat befor
 
 - Match frames to PDF pages locally with pdf.js thumbnails instead of Gemini. Needs the team's OK for the dependency.
 - Gemini text-to-speech audio for slide overviews.
+- Summary mode: an optional setting that reads a short summary instead of the full slide. Needs a `summary` field from Person 1 and a toggle from Person 3.
 - Gemini Live API for faster transcription.
 - Export the transcript and slide descriptions to a Google Doc after the meeting.
 - Pull lecture slides from Canvas or Google Classroom.

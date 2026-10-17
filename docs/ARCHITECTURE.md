@@ -23,8 +23,11 @@ Rooms are in memory. A server restart clears them.
 ## Shared objects
 
 ```js
-// Slide. number is null when there is no deck and the slide came from a screenshot.
-{ number: 3, title: "Q3 revenue", text: "…", visuals: "A bar chart showing…", overview: "This slide…" }
+// Slide. From a screenshot, number is the slide number printed on the slide, or null if there is none.
+{ number: 3, title: "Q3 revenue", text: "…", visuals: "A bar chart showing…", overview: "…" }
+// overview is what is spoken on "describe": the slide text word for word, without the title, with each
+// visual's description inserted in reading order and marked "Image:", "Chart:", "Photo:" and so on.
+// Nothing is summarized. A shorter summary mode is a planned optional setting.
 
 // Deck status
 { status: "none" | "processing" | "ready" | "error", fileName, error, slideCount }
@@ -46,7 +49,7 @@ Rooms are in memory. A server restart clears them.
 | `GET /api/rooms/:id` | | room state: `{ id, deck, summary, slides, current, transcript }` |
 | `POST /api/rooms/:id/deck` | PDF bytes, `Content-Type: application/pdf`, `X-File-Name` | `202 { deck }`, then a `deck` socket message when done |
 | `GET /api/rooms/:id/deck.pdf` | | the PDF |
-| `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, slide }`. Described at most once every 3 s per room; the newest frame wins |
+| `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, slide }`. Takes about 2.5 s. Described at most once every 3 s per room; the newest frame wins |
 | `POST /api/rooms/:id/ask` | `{ question }` | `{ answer }` |
 
 | `POST /api/zoom/signature` | `{ meetingNumber }` | `{ signature, sdkKey }`. Person 4. Answers 501 until built |
