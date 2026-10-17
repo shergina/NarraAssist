@@ -24,6 +24,7 @@
         <button id="connect" class="primary">Connect to Zoom tab</button>
         <button id="describe">Describe slide</button>
         <button id="live" disabled>Skip to live</button>
+        <button id="open-settings" type="button">Listener settings</button>
       </div>
       <p class="muted">Join the meeting with Zoom's "Join from your browser" first. When Chrome asks what to share, pick the Zoom tab and turn on "Also share tab audio".</p>
       <form id="zoom" class="row" aria-label="Speaker names">
@@ -61,11 +62,6 @@
       <div id="slides"></div>
     </section>
 
-    <section aria-labelledby="settings-h">
-      <h2 id="settings-h">Settings</h2>
-      <form id="settings"></form>
-    </section>
-
     <section aria-labelledby="keys-h">
       <h2 id="keys-h">Keyboard shortcuts</h2>
       <ul id="shortcuts"></ul>
@@ -91,6 +87,16 @@
       </details>
     </section>
   </main>
+  <dialog id="settings-dialog" aria-labelledby="settings-h" aria-describedby="settings-description">
+    <div class="settings-heading">
+      <div>
+        <h2 id="settings-h">Listener settings</h2>
+        <p id="settings-description" class="muted">Adjust slide alerts and playback preferences. Changes are saved in this browser.</p>
+      </div>
+      <button id="close-settings" type="button">Close</button>
+    </div>
+    <div id="settings"></div>
+  </dialog>
   <script type="module" src="/js/listener.js"></script>
 </body>
 </html>

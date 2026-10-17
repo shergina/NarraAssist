@@ -256,25 +256,56 @@ const SETTING_LABELS = {
   "announce.slideTitle": "Announce slide titles",
 };
 
+const SETTING_GROUPS = [
+  {
+    label: "Live slide explainer",
+    keys: ["sound.slideChanged", "announce.slideTitle"],
+  },
+  {
+    label: "Meeting alerts",
+    keys: ["sound.presenterQuiet", "sound.caughtUp", "announce.speaker"],
+  },
+];
+
 function renderSettings() {
-  const toggles = Object.entries(SETTING_LABELS).map(([key, label]) =>
-    h("label", { class: "inline" },
-      h("input", { type: "checkbox", checked: settings.get(key), onchange: (e) => settings.set(key, e.target.checked) }),
-      label),
+  const groups = SETTING_GROUPS.map(({ label, keys }) =>
+    h("fieldset", { class: "settings-group" },
+      h("legend", {}, label),
+      ...keys.map((key) =>
+        h("label", { class: "setting-toggle" },
+          h("input", {
+            type: "checkbox",
+            checked: settings.get(key),
+            onchange: (e) => settings.set(key, e.target.checked),
+          }),
+          h("span", {}, SETTING_LABELS[key])),
+      )),
   );
   const select = (key, label, options) =>
     h("label", {}, label,
-      h("select", { onchange: (e) => settings.set(key, isNaN(e.target.value) ? e.target.value : Number(e.target.value)) },
+      h("select", {
+        onchange: (e) => {
+          const value = key === "speech.mode" ? e.target.value : Number(e.target.value);
+          settings.set(key, value);
+          if (key === "catchup.maxRate") state.audio?.setMaxRate(value);
+        },
+      },
         options.map(([value, text]) => h("option", { value, selected: String(settings.get(key)) === String(value) }, text))));
   $("#settings").replaceChildren(
-    ...toggles.map((t) => h("div", {}, t)),
-    h("div", { class: "row" },
-      select("speech.mode", "Read descriptions with", [["voice", "Built-in voice"], ["screen-reader", "My screen reader"]]),
-      select("voice.rate", "Voice speed", [[1, "1x"], [1.2, "1.2x"], [1.5, "1.5x"], [2, "2x"]]),
-      select("catchup.maxRate", "Fastest catch-up speed", [[1.5, "1.5x"], [2, "2x"], [2.5, "2.5x"]])),
+    ...groups,
+    h("fieldset", { class: "settings-group" },
+      h("legend", {}, "Speech and catch-up"),
+      h("div", { class: "settings-options" },
+        select("speech.mode", "Read descriptions with", [["voice", "Built-in voice"], ["screen-reader", "My screen reader"]]),
+        select("voice.rate", "Voice speed", [[1, "1x"], [1.2, "1.2x"], [1.5, "1.5x"], [2, "2x"]]),
+        select("catchup.maxRate", "Fastest catch-up speed", [[1.5, "1.5x"], [2, "2x"], [2.5, "2.5x"]]))),
   );
 }
 renderSettings();
+
+const settingsDialog = $("#settings-dialog");
+$("#open-settings").addEventListener("click", () => settingsDialog.showModal());
+$("#close-settings").addEventListener("click", () => settingsDialog.close());
 
 // ---------- slides and questions ----------
 
