@@ -50,7 +50,7 @@ Rooms are in memory. A server restart clears them.
 | `GET /api/rooms/:id` | | room state: `{ id, deck, summary, slides, current, transcript }` |
 | `POST /api/rooms/:id/deck` | PDF bytes, `Content-Type: application/pdf`, `X-File-Name` | `202 { deck }`, then a `deck` socket message when done |
 | `GET /api/rooms/:id/deck.pdf` | | the PDF |
-| `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, slide }`. Takes about 2.5 s. Described at most once every 3 s per room; the newest frame wins |
+| `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, reason, slide }`. `reason` is `"described"`, `"nothing-shared"` (no content on screen; the current slide is cleared and a `slide` message with `slide: null` is broadcast) or `"no-match"` (content on screen but not a page of the deck). Takes about 2.5 s. Described at most once every 3 s per room; the newest frame wins |
 | `POST /api/rooms/:id/ask` | `{ question }` | `{ answer }` |
 
 | `POST /api/zoom/signature` | `{ meetingNumber }` | `{ signature, sdkKey }`. Person 4. Answers 501 until built |
@@ -196,7 +196,7 @@ The presenter page may import these. Only Person 3 changes them.
 
 Person 3 implements these rules in `listener.js`.
 
-- **Slide changed.** On `watchSlides` `onChange`, play the knock and post the frame to `/api/rooms/:id/frame`. A `slide` message with `source: "screen"` updates the content silently, since the knock already played. A `slide` message with `source: "presenter"` plays the knock and updates the content.
+- **Slide changed.** On `watchSlides` `onChange`, play the knock and post the frame to `/api/rooms/:id/frame`. If the response's `reason` is `"nothing-shared"`, or a `slide` message arrives with `slide: null`, show and announce "Nothing is being shared right now", and make Describe say the same. A `slide` message with `source: "screen"` updates the content silently, since the knock already played. A `slide` message with `source: "presenter"` plays the knock and updates the content.
 - **During a description.** Earcons still play. Words wait in a queue and play when the description ends, or can be heard with Alt+Shift+A.
 - **Speaker names.** Keep a list of `{ name, at }` from the Zoom helper. While live, announce a name as it arrives. During a description, announce nothing. During catch-up, announce each name when `audio.meetingTime` reaches its `at`. When playback resumes after a description, first announce the latest speaker whose `at` is at or before `audio.meetingTime`. Never announce the same name twice in a row.
 - **Describe.** With `describe.mode` "full" (the default), speak `overview`. With "summary", speak `summary`. A separate shortcut always reads the full `overview`, so the exact words are never more than one key away.
