@@ -1,4 +1,4 @@
-# ZoomInSight
+# ZoomInSight: A tool for virtual meeting accessibility for Blind and Low-Vision users
 
 **Group Members Names:** Maria, Tanishka, Saanvi, Anika
 
