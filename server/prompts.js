@@ -45,7 +45,8 @@ visuals: describe only charts, diagrams, photos, screenshots, or tables
 that carry meaning. For a chart, give its type, what it measures, the
 approximate values of the main data points, and the overall trend. If
 values are not clearly readable, say "approximately" or say that the
-values are not readable. Do not describe backgrounds, decorative shapes,
+values are not readable. Describe what is shown, not what it might
+mean. Do not describe backgrounds, decorative shapes,
 borders, divider lines, layout, or colors, unless a color carries
 meaning, as in a chart. If there is nothing meaningful to describe,
 leave this empty.
@@ -58,7 +59,12 @@ diagram, photo, illustration, screenshot, or table appears in the
 reading order, insert its description at that point, beginning with
 one of these exact markers followed by a colon: "Image:", "Chart:",
 "Diagram:", "Photo:", "Table:". The marker lets the listener tell a
-description from slide text. Use the same descriptions as in visuals.
-Leave out decoration.
+description from slide text. When several images each have their own
+caption or label, read them one pair at a time in this exact pattern:
+the marker and a brief description of the first image, then its
+caption, then the marker and a description of the second image, then
+its caption, and so on. Never combine several captioned images into one
+description, and do not repeat a caption inside a description. Use the
+same descriptions as in visuals. Leave out decoration.
 
 ${SPOKEN_RULES}`;
