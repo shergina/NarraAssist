@@ -104,7 +104,7 @@ Presenter to server:
 
 These are agreed but not built. Add them here when they land.
 
-- Speaker names from the Zoom Meeting SDK for web. The listener page loads the SDK and joins the same meeting as a visible participant named "Accessibility helper", with its audio and video off. It listens for active-speaker events and announces names locally: only while hearing the speaker, never during a description, and during catch-up when playback reaches the time the person started talking. No server message is needed for names.
+- Speaker names and the microphone from the Zoom Meeting SDK for web. The listener page joins the same meeting through the SDK under the listener's own name, with the microphone on (muted) and the speaker off. It listens for active-speaker events and announces names locally: only while hearing the speaker, never during a description, and during catch-up when playback reaches the time the person started talking. It also carries the listener's microphone, so mute and unmute are a button and a shortcut on our page. Meeting sound still comes from the captured Zoom tab. No server message is needed for names.
 - `POST /api/zoom/signature` with `{ meetingNumber }` returns `{ signature, sdkKey }`. The server signs the SDK join token with `ZOOM_SDK_KEY` and `ZOOM_SDK_SECRET` from `.env`. The secret never reaches the browser.
 - Fallback if the SDK fails: the listener page crops the active-speaker tile on voice onset and the server asks Gemini to read the name.
 - Nudge gets `cue: "visuals" | "share-file" | "self-description"` and `source: "ai" | "listener"`.
@@ -157,14 +157,18 @@ audio.stop()
 parseZoomLink(text) -> { meetingNumber, passcode } | null
 // Accepts a pasted Zoom invite link or a meeting ID.
 
-const helper = await joinAsHelper({ meetingNumber, passcode, container });
-// Joins as a visible participant named "Accessibility helper" with mic and camera off.
+const zoom = await joinMeeting({ meetingNumber, passcode, userName, container });
+// Joins as the listener, under userName (their own name, typed on the listener page), with the
+// microphone joined but muted and the speaker off, so the meeting is heard only through the captured tab.
 // container: a hidden element for the SDK's own UI. Gets its signature from POST /api/zoom/signature.
 
+zoom.setMuted(true | false)   // mute or unmute the listener's microphone in the meeting
+zoom.muted                    // current state
+"muted"    event.detail = { muted }                    // state changed, by us or by the host
 "speaker"  event.detail = { name, at }                // a different person became the active speaker; at is Date.now()
 "share"    event.detail = { sharing, name, at }       // only if the SDK reports sharing; sharing is true or false
 "error"    event.detail = { message }
-helper.leave()
+zoom.leave()
 // Never plays sounds or speaks.
 ```
 
@@ -181,7 +185,9 @@ earcons.slideChanged() / presenterQuiet() / caughtUp() / attention()   // each c
 settings.get(key) / settings.set(key, value)   // saved in localStorage
 // keys: sound.slideChanged, sound.presenterQuiet, sound.caughtUp, announce.speaker, announce.slideTitle,
 //       voice.rate, catchup.maxRate, speech.mode ("voice" | "screen-reader"),
-//       describe.mode ("full" | "summary", default "full"). Every sound and announcement defaults to on.
+//       describe.mode ("full" | "summary", default "full"),
+//       video.float (default true: the captured Zoom video floats in a picture-in-picture window over other tabs).
+//       Every sound and announcement defaults to on.
 ```
 
 The presenter page may import these. Only Person 3 changes them.
@@ -194,6 +200,8 @@ Person 3 implements these rules in `listener.js`.
 - **During a description.** Earcons still play. Words wait in a queue and play when the description ends, or can be heard with Alt+Shift+A.
 - **Speaker names.** Keep a list of `{ name, at }` from the Zoom helper. While live, announce a name as it arrives. During a description, announce nothing. During catch-up, announce each name when `audio.meetingTime` reaches its `at`. When playback resumes after a description, first announce the latest speaker whose `at` is at or before `audio.meetingTime`. Never announce the same name twice in a row.
 - **Describe.** With `describe.mode` "full" (the default), speak `overview`. With "summary", speak `summary`. A separate shortcut always reads the full `overview`, so the exact words are never more than one key away.
+- **Mute.** Alt+Shift+M calls `zoom.setMuted` and announces "Muted" or "Unmuted" from the `muted` event, so a host muting the listener is announced too. If the listener has not joined through the SDK, announce "Switch to the Zoom tab to unmute" instead.
+- **Floating video.** When `video.float` is on, after capture starts the captured Zoom video is shown picture-in-picture (`video.requestPictureInPicture()`, which needs the user's click, so it runs from the Connect button). A shortcut toggles it. This is a visual convenience for low-vision listeners; it changes nothing about audio or focus.
 - **Presenter quiet.** Play the falling tone. Queue the words if a description is playing.
 - **Caught up.** Play the rising sweep.
 

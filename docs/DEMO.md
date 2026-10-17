@@ -6,7 +6,7 @@ Owner: Person 4. Fill this in as features land. Target length: three minutes.
 
 - Server running, room created, presenter page open on a phone with notifications on.
 - The Zoom meeting is hosted by a team member's account. The SDK helper can only join meetings our own account hosts.
-- Listener laptop: Chrome, Zoom web client joined, listener page connected to the Zoom tab and the "Accessibility helper" joined, screen reader on.
+- Listener laptop: Chrome, Zoom web client joined with microphone muted, listener page connected to the Zoom tab and joined to the meeting under the listener's name, screen reader on.
 - Presenter laptop: normal Zoom app, deck open, same deck uploaded to the presenter page.
 - Backup: a one-minute screen recording of the full flow, in case the Wi-Fi fails.
 
@@ -22,6 +22,6 @@ Owner: Person 4. Fill this in as features land. Target length: three minutes.
 
 ## Lines to say
 
-- On the helper participant, before anyone asks: "That 'Accessibility helper' in the participant list is our app. It's how we know who's speaking."
+- On the listener appearing twice, before anyone asks: "The listener is in the meeting twice, like a laptop and a phone. One connection is what our page listens to, the other carries their microphone so mute is one key away."
 - On limits: "For the demo we host the meeting ourselves. To work in anyone's meeting, the app goes through Zoom's Marketplace review, like every Zoom integration. Long term, Zoom's Realtime Media Streams would give us the audio and speaker names directly, with no tab capture."
 - (more to write)
