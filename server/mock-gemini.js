@@ -51,8 +51,8 @@ export async function matchSlide(jpeg, slides) {
 
 export async function describeFrame() {
   await wait(800);
-  const { title, text, visuals, overview } = SLIDES[frames++ % SLIDES.length];
-  return { isSharedContent: true, title, text, visuals, overview };
+  const { number, title, text, visuals, overview } = SLIDES[frames++ % SLIDES.length];
+  return { isSharedContent: true, title, slideNumber: number, text, visuals, overview };
 }
 
 export async function transcribe() {

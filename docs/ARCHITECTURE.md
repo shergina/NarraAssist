@@ -23,7 +23,7 @@ Rooms are in memory. A server restart clears them.
 ## Shared objects
 
 ```js
-// Slide. number is null when there is no deck and the slide came from a screenshot.
+// Slide. From a screenshot, number is the slide number printed on the slide, or null if there is none.
 { number: 3, title: "Q3 revenue", text: "…", visuals: "A bar chart showing…", overview: "This slide…" }
 
 // Deck status
