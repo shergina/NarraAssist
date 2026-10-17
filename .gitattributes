@@ -1,0 +1,5 @@
+# Keep line endings consistent between macOS and Windows teammates.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
