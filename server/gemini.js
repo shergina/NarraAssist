@@ -17,14 +17,22 @@ export const status = () => (useMock ? "mock" : "live");
 
 const inline = (bytes, mimeType) => ({ inlineData: { mimeType, data: Buffer.from(bytes).toString("base64") } });
 
-async function generateJson(model, parts, schema) {
-  const res = await client.models.generateContent({
-    model,
-    contents: [{ role: "user", parts }],
-    config: { responseMimeType: "application/json", responseSchema: schema },
-  });
-  const usage = res.usageMetadata;
-  console.log(`[gemini] ${model} ${usage?.totalTokenCount ?? "?"} tokens`);
+// fast: true turns the model's thinking off. On our screenshot tests that halved the time (about 2.5 s)
+// with no loss in accuracy. If a model version rejects the setting, the call is retried without it.
+async function generateJson(model, parts, schema, { fast = false } = {}) {
+  const config = { responseMimeType: "application/json", responseSchema: schema };
+  if (fast) config.thinkingConfig = { thinkingBudget: 0 };
+  const started = Date.now();
+  let res;
+  try {
+    res = await client.models.generateContent({ model, contents: [{ role: "user", parts }], config });
+  } catch (err) {
+    if (!fast || !/thinking/i.test(err.message)) throw err;
+    console.warn(`[gemini] ${model} rejected thinkingBudget, retrying without it`);
+    delete config.thinkingConfig;
+    res = await client.models.generateContent({ model, contents: [{ role: "user", parts }], config });
+  }
+  console.log(`[gemini] ${model} ${res.usageMetadata?.totalTokenCount ?? "?"} tokens ${((Date.now() - started) / 1000).toFixed(1)} s`);
   return JSON.parse(res.text);
 }
 
@@ -53,8 +61,8 @@ export async function matchSlide(jpeg, slides) {
 }
 
 // JPEG bytes -> { isSharedContent, title, slideNumber, text, visuals, overview }
-// Uses the main model. The fast model was 2 s quicker but miscounted people in a photo on every run
-// and leaked the title into the spoken text. Descriptions are made in the background, so 3 to 4 s is fine.
+// Uses the main model with thinking off, about 2.5 s. Flash-Lite was no faster than that and
+// miscounted people in a photo on every run and leaked the title into the spoken text.
 export async function describeFrame(jpeg) {
   if (useMock) return mock.describeFrame(jpeg);
   const schema = {
@@ -62,7 +70,7 @@ export async function describeFrame(jpeg) {
     properties: { isSharedContent: { type: Type.BOOLEAN }, ...SLIDE_FIELDS },
     required: ["isSharedContent", ...Object.keys(SLIDE_FIELDS)],
   };
-  return generateJson(models.main, [inline(jpeg, "image/jpeg"), { text: prompts.DESCRIBE_FRAME }], schema);
+  return generateJson(models.main, [inline(jpeg, "image/jpeg"), { text: prompts.DESCRIBE_FRAME }], schema, { fast: true });
 }
 
 // WAV bytes -> transcript text, or "" for no speech
