@@ -42,6 +42,7 @@ const SLIDE_FIELDS = {
   text: { type: Type.STRING },
   visuals: { type: Type.STRING },
   overview: { type: Type.STRING },
+  summary: { type: Type.STRING },
 };
 
 function notBuilt(name) {
@@ -60,7 +61,7 @@ export async function matchSlide(jpeg, slides) {
   notBuilt("matchSlide");
 }
 
-// JPEG bytes -> { isSharedContent, title, slideNumber, text, visuals, overview }
+// JPEG bytes -> { isSharedContent, title, slideNumber, text, visuals, overview, summary }
 // Uses the main model with thinking off, about 2.5 s. Flash-Lite was no faster than that and
 // miscounted people in a photo on every run and leaked the title into the spoken text.
 export async function describeFrame(jpeg) {

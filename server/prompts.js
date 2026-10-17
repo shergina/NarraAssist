@@ -5,9 +5,10 @@
 // Output shapes are enforced by the JSON schemas in gemini.js, so prompts describe fields, not formatting.
 //
 // The spoken field (overview) is a verbatim read of the slide with image descriptions inserted in
-// reading order. Nothing is summarized by default. A summary mode is a planned optional setting.
+// reading order. Nothing is summarized by default. The summary field is for the optional summary setting:
+// shorter, but every number, name and date must survive. Tested on the same seven screenshots.
 
-export const SPOKEN_RULES = `Rules for visuals and overview: write for the ear, in plain sentences.
+export const SPOKEN_RULES = `Rules for visuals, overview, and summary: write for the ear, in plain sentences.
 No bullet characters, no markdown, no symbols. Say "percent" instead of
 the percent sign and "dollars" instead of the dollar sign. Use only what
 is visible in the image. Never invent text, numbers, or details.`;
@@ -68,5 +69,16 @@ caption, then the marker and a description of the second image, then
 its caption, and so on. Never combine several captioned images into one
 description, and do not repeat a caption inside a description. Use the
 same descriptions as in visuals. Leave out decoration.
+
+summary: a short spoken version of the slide, for a listener who has
+chosen summaries instead of the full read. Aim for three sentences and
+about forty words, but every number, name, and date on the slide must
+survive, even if that makes it longer. For a chart, give every labeled
+value. Begin with the word "Summary" and a colon, then start directly
+with the content, not with "The slide". Give the main point first. Use
+the slide's own phrases where possible. Mention each meaningful image
+in a few words with the same markers as in overview. Do not include the
+title. If the slide has only a line or two of text, the summary may
+simply repeat it.
 
 ${SPOKEN_RULES}`;

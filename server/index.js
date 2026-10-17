@@ -55,7 +55,7 @@ app.post("/api/rooms/:id/frame", express.raw({ type: "image/jpeg", limit: "8mb" 
     if (match.slideNumber > 0 && match.confidence >= 0.5) slide = slideByNumber(room, match.slideNumber);
   } else {
     const d = await gemini.describeFrame(req.body);
-    if (d.isSharedContent) slide = { number: d.slideNumber || null, title: d.title, text: d.text, visuals: d.visuals, overview: d.overview };
+    if (d.isSharedContent) slide = { number: d.slideNumber || null, title: d.title, text: d.text, visuals: d.visuals, overview: d.overview, summary: d.summary };
   }
   const changed = slide ? setCurrentSlide(room, slide, "screen") : false;
   res.json({ changed, slide: room.current });

@@ -24,10 +24,11 @@ Rooms are in memory. A server restart clears them.
 
 ```js
 // Slide. From a screenshot, number is the slide number printed on the slide, or null if there is none.
-{ number: 3, title: "Q3 revenue", text: "…", visuals: "A bar chart showing…", overview: "…" }
+{ number: 3, title: "Q3 revenue", text: "…", visuals: "A bar chart showing…", overview: "…", summary: "Summary: …" }
 // overview is what is spoken on "describe": the slide text word for word, without the title, with each
 // visual's description inserted in reading order and marked "Image:", "Chart:", "Photo:" and so on.
-// Nothing is summarized. A shorter summary mode is a planned optional setting.
+// Nothing is summarized in overview. summary is the short version for the optional summary setting: it starts
+// with "Summary:", keeps every number, name and date, and uses the same image markers.
 
 // Deck status
 { status: "none" | "processing" | "ready" | "error", fileName, error, slideCount }
@@ -179,7 +180,8 @@ earcons.slideChanged() / presenterQuiet() / caughtUp() / attention()   // each c
 
 settings.get(key) / settings.set(key, value)   // saved in localStorage
 // keys: sound.slideChanged, sound.presenterQuiet, sound.caughtUp, announce.speaker, announce.slideTitle,
-//       voice.rate, catchup.maxRate, speech.mode ("voice" | "screen-reader"). Every sound and announcement defaults to on.
+//       voice.rate, catchup.maxRate, speech.mode ("voice" | "screen-reader"),
+//       describe.mode ("full" | "summary", default "full"). Every sound and announcement defaults to on.
 ```
 
 The presenter page may import these. Only Person 3 changes them.
@@ -191,6 +193,7 @@ Person 3 implements these rules in `listener.js`.
 - **Slide changed.** On `watchSlides` `onChange`, play the knock and post the frame to `/api/rooms/:id/frame`. A `slide` message with `source: "screen"` updates the content silently, since the knock already played. A `slide` message with `source: "presenter"` plays the knock and updates the content.
 - **During a description.** Earcons still play. Words wait in a queue and play when the description ends, or can be heard with Alt+Shift+A.
 - **Speaker names.** Keep a list of `{ name, at }` from the Zoom helper. While live, announce a name as it arrives. During a description, announce nothing. During catch-up, announce each name when `audio.meetingTime` reaches its `at`. When playback resumes after a description, first announce the latest speaker whose `at` is at or before `audio.meetingTime`. Never announce the same name twice in a row.
+- **Describe.** With `describe.mode` "full" (the default), speak `overview`. With "summary", speak `summary`. A separate shortcut always reads the full `overview`, so the exact words are never more than one key away.
 - **Presenter quiet.** Play the falling tone. Queue the words if a description is playing.
 - **Caught up.** Play the rising sweep.
 
