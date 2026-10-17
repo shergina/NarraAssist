@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audio lab · ZoomInSight</title>
+  <!-- Owner: Person 2. Tests capture.js and audio-engine.js on their own, with any tab that has talking in it. -->
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    dl.readout { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 1rem; margin: 0; }
+    dl.readout dt { font-weight: 600; }
+    dl.readout dd { margin: 0; font-variant-numeric: tabular-nums; }
+    meter { width: 12rem; }
+    #frame { max-width: 100%; border: 1px solid var(--border); border-radius: 0.5rem; }
+    #log { max-height: 16rem; overflow-y: auto; font-variant-numeric: tabular-nums; }
+    #log p { margin: 0.15rem 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Audio lab</h1>
+    <span class="muted">Live audio and slide watching, without the rest of the app</span>
+  </header>
+
+  <main>
+    <section aria-labelledby="source-h">
+      <h2 id="source-h">Source</h2>
+      <p class="muted">Three ways to feed the engine. <strong>Capture a tab</strong>: pick a tab with talking in it (the Zoom web client or a YouTube lecture) and turn on "Also share tab audio"; that tab goes quiet and this page plays it instead. <strong>Simulated meeting</strong>: a made-up voice with short and long pauses, and a made-up shared screen with slides and a moving camera tile; nothing to set up. <strong>Audio file</strong>: the same simulated screen, with a recording of your choice as the voice.</p>
+      <div class="row">
+        <button id="capture" class="primary">Capture a tab</button>
+        <button id="simulate">Simulated meeting</button>
+        <label>Audio file
+          <input id="file" type="file" accept="audio/*,video/*">
+        </label>
+      </div>
+      <p id="source" class="status">Nothing captured.</p>
+    </section>
+
+    <section aria-labelledby="controls-h">
+      <h2 id="controls-h">Controls</h2>
+      <p class="muted">Shortcuts: H hold, U catch up, L skip to live, T run the 30-second test, N next simulated slide, Q make the simulated presenter go quiet.</p>
+      <div class="row">
+        <button id="hold" disabled>Hold</button>
+        <button id="catchup" disabled>Catch up</button>
+        <button id="live" disabled>Skip to live</button>
+        <button id="test" disabled>Hold 30 s, then catch up</button>
+      </div>
+      <div class="row">
+        <label>Catch-up speed cap: <output id="rate-out">2.00x</output>
+          <input id="rate" type="range" min="1.25" max="2.5" step="0.05" value="2">
+        </label>
+        <label>Silence below: <output id="threshold-out">-40 dB</output>
+          <input id="threshold" type="range" min="-60" max="-20" step="1" value="-40">
+        </label>
+      </div>
+    </section>
+
+    <section aria-labelledby="readout-h">
+      <h2 id="readout-h">Readout</h2>
+      <dl class="readout">
+        <dt>Mode</dt><dd id="r-mode">not running</dd>
+        <dt>Seconds behind</dt><dd id="r-behind">0.0</dd>
+        <dt>Meeting time</dt><dd id="r-meeting">–</dd>
+        <dt>Playing speed</dt><dd id="r-rate">1.00x</dd>
+        <dt>Pauses skipped</dt><dd id="r-skipped">0.0 s</dd>
+        <dt>Recorded in memory</dt><dd id="r-recorded">0.0 s</dd>
+        <dt>Input level</dt><dd><meter id="r-level" min="-60" max="0" low="-40" high="-6" value="-60" aria-label="Input level in decibels"></meter> <span id="r-level-text">-60 dB</span></dd>
+        <dt>Audio context</dt><dd id="r-context">–</dd>
+      </dl>
+    </section>
+
+    <section aria-labelledby="pcm-h">
+      <h2 id="pcm-h">Audio for transcription</h2>
+      <p id="pcm" class="status">No PCM yet.</p>
+      <div class="row">
+        <button id="wav" disabled>Download the last 10 s as WAV</button>
+      </div>
+    </section>
+
+    <section aria-labelledby="slides-h">
+      <h2 id="slides-h">Slide watching</h2>
+      <p id="slides" class="status">Not watching.</p>
+      <div class="row">
+        <button id="next-slide" disabled>Next simulated slide</button>
+        <button id="go-quiet" disabled>Simulated presenter goes quiet for 4 s</button>
+      </div>
+      <canvas id="sim-screen" width="1280" height="720" style="max-width: 100%; border: 1px solid var(--border); border-radius: 0.5rem" aria-label="The simulated shared screen" hidden></canvas>
+      <p id="crop" class="muted"></p>
+      <img id="frame" alt="The last frame sent on a slide change" hidden>
+    </section>
+
+    <section aria-labelledby="log-h">
+      <h2 id="log-h">Events</h2>
+      <div id="log" role="log" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/js/audio-lab.js"></script>
+</body>
+</html>
