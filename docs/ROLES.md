@@ -34,6 +34,8 @@ or in a contract in ARCHITECTURE.md, stop and tell me instead of making it.
 
 All project code is written during DubHacks '26, in this repository, to the contracts in ARCHITECTURE.md.
 
+The skeleton already has every file, each with its owner at the top. Stubs are marked `TODO(Person N)`. Replace a stub's insides, keep its name and shape. The listener page's Developer tools panel simulates the other lanes.
+
 ---
 
 ## Person 1: AI brain
@@ -44,7 +46,7 @@ All project code is written during DubHacks '26, in this repository, to the cont
 
 **Build, in this order.**
 
-1. **Mock mode, first hour.** When `MOCK_GEMINI=1` is set in `.env`, every function in `gemini.js` returns realistic canned data after a short delay: slide descriptions, a deck, transcript lines, an occasional nudge, Q&A answers. This lets Persons 3 and 4 work without keys or quota. Push it before anything else.
+1. **Mock mode is done.** `server/mock-gemini.js` returns canned data whenever `MOCK_GEMINI=1` or there's no key. Keep it working and matching the real shapes as you change them, because the other three lanes build against it.
 2. **Screenshot descriptions.** `POST /api/rooms/:id/frame` takes the cropped JPEG from the listener page. With no deck, Gemini describes it. With a deck, Gemini matches it to a page. Describe at most once every 3 seconds per room. If frames arrive faster, describe only the newest. Broadcast the result as a `slide` message.
 3. **Deck processing and Q&A.** PDF upload to per-slide title, text, visuals and overview. Q&A over the deck, the current slide and recent transcript.
 4. **Transcription.** 6-second chunks of the PCM audio the listener page streams. Skip silent chunks.
@@ -77,6 +79,8 @@ All project code is written during DubHacks '26, in this repository, to the cont
 6. **Audio for transcription.** `streamPcm` sends 16 kHz audio of the live meeting in every mode.
 
 **Never.** Play earcons, speak, call the server, or touch the listener page. You emit events. Person 3 decides what the listener hears.
+
+**Keep in mind.** The Developer tools panel creates `MeetingAudio` with a stream that has no audio tracks. The real engine must accept that without throwing, and simply stay silent.
 
 **Provides.** `startCapture`, `watchSlides` and `MeetingAudio`, exactly as specified under "Browser modules" in ARCHITECTURE.md.
 
@@ -121,7 +125,7 @@ All project code is written during DubHacks '26, in this repository, to the cont
 
 **Owns.** `public/presenter.html`, `public/js/presenter.js`, a new `public/css/presenter.css`, a new `public/js/zoom-helper.js`, a new `server/zoom.js`, a new test page `public/zoom-lab.html` with `public/js/zoom-lab.js`, and `docs/DEMO.md`.
 
-`server/index.js` belongs to Person 1. Person 4 adds exactly one import line and one line mounting `zoomRouter` at `/api/zoom`, once, in their first pull request.
+`server/zoom.js` already exists and is mounted at `/api/zoom` in `server/index.js`, so Person 4 never needs to touch Person 1's files.
 
 **Build, in this order.**
 
@@ -166,7 +170,7 @@ Check the official DubHacks schedule. Last year's pattern was submissions due Su
 | When | What |
 |---|---|
 | Saturday kickoff, 30 minutes | Fill in names. Read this file together. Confirm the contracts. Decide whether to rebuild the code. |
-| Saturday, first two hours | Person 1: mock mode merged. Person 2: capture proven on both machines. Person 3: announcement queue and settings. Person 4: Zoom lab answers both questions. |
+| Saturday, first two hours | Person 1: first real Gemini call replacing a mock. Person 2: capture proven on both machines. Person 3: announcement queue and settings. Person 4: Zoom lab answers both questions. |
 | Saturday, about 6 p.m. | **Integration 1.** One laptop, the full flow, real Gemini, real meeting. Write down every bug. |
 | Saturday night | Lanes feature-complete. |
 | Sunday, about 7 a.m. | **Integration 2.** The full demo script, twice. Screen reader pass. |

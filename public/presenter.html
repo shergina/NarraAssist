@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Presenter · ZoomInSight</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/presenter.css">
+</head>
+<body>
+  <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
+  <div id="sr-alert" class="sr-only" role="alert" aria-live="assertive"></div>
+
+  <header>
+    <h1>Presenter</h1>
+    <span>Room <code class="room" id="room"></code></span>
+    <span id="conn" class="muted">Connecting…</span>
+  </header>
+
+  <main>
+    <p>Keep this page open on your phone or a second screen. It tells you when a blind or low-vision attendee needs something described.</p>
+
+    <section aria-labelledby="alerts-h">
+      <h2 id="alerts-h">Description prompts</h2>
+      <button id="notify">Turn on notifications</button>
+      <div id="alerts"><p class="muted" id="no-alerts">Nothing to describe right now.</p></div>
+    </section>
+
+    <section aria-labelledby="slides-h">
+      <h2 id="slides-h">Your slides</h2>
+      <p id="deck-status" class="muted">Optional: upload your deck as a PDF so attendees can review it.</p>
+      <label>Slide deck (PDF) <input id="deck" type="file" accept="application/pdf"></label>
+      <h3>Current slide</h3>
+      <p id="current" class="status">Not set</p>
+      <div class="row">
+        <button id="prev" disabled>Previous slide</button>
+        <button id="next" disabled>Next slide</button>
+        <label>Go to <select id="jump" disabled></select></label>
+      </div>
+    </section>
+
+    <section aria-labelledby="transcript-h">
+      <h2 id="transcript-h">What the tool heard</h2>
+      <div id="transcript" class="transcript" tabindex="0" aria-label="Transcript"></div>
+    </section>
+  </main>
+  <script type="module" src="/js/presenter.js"></script>
+</body>
+</html>

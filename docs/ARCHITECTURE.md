@@ -41,7 +41,7 @@ Rooms are in memory. A server restart clears them.
 
 | Method and path | Body | Returns |
 |---|---|---|
-| `GET /api/health` | | `{ ok, gemini, models }` |
+| `GET /api/health` | | `{ ok, gemini: "mock" \| "live", models }` |
 | `POST /api/rooms` | | `201 { id }` |
 | `GET /api/rooms/:id` | | room state: `{ id, deck, summary, slides, current, transcript }` |
 | `POST /api/rooms/:id/deck` | PDF bytes, `Content-Type: application/pdf`, `X-File-Name` | `202 { deck }`, then a `deck` socket message when done |
@@ -49,7 +49,10 @@ Rooms are in memory. A server restart clears them.
 | `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, slide }`. Described at most once every 3 s per room; the newest frame wins |
 | `POST /api/rooms/:id/ask` | `{ question }` | `{ answer }` |
 
-Errors are `{ error: "message" }` with a 4xx or 5xx status. 503 means no Gemini key.
+| `POST /api/zoom/signature` | `{ meetingNumber }` | `{ signature, sdkKey }`. Person 4. Answers 501 until built |
+| `POST /api/rooms/:id/dev/transcript` | `{ text }` | Development only. Adds a transcript line and runs the cue check immediately |
+
+Errors are `{ error: "message" }` with a 4xx or 5xx status. 501 means a stub that isn't built yet.
 
 ## WebSocket
 
@@ -188,9 +191,11 @@ Person 3 implements these rules in `listener.js`.
 - **Presenter quiet.** Play the falling tone. Queue the words if a description is playing.
 - **Caught up.** Play the rising sweep.
 
-## Mock mode
+## Mock mode and developer tools
 
-With `MOCK_GEMINI=1` in `.env`, every function in `server/gemini.js` returns realistic canned data after a short delay, and nothing calls Google. Person 1 builds this first so other lanes can work without a key or quota.
+With `MOCK_GEMINI=1` in `.env`, or no key at all, every function in `server/gemini.js` returns canned data from `server/mock-gemini.js`, and nothing calls Google.
+
+The listener page has a Developer tools panel. It can simulate a meeting connection, a slide change, a new speaker through `fakeHelper()` in `zoom-helper.js`, the presenter saying "as you can see", and the room going quiet.
 
 ## Listener audio modes
 

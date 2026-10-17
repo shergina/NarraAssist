@@ -1,0 +1,53 @@
+/* Owner: Person 3. Base styles. Visual design for low vision is still to come. */
+:root {
+  --bg: #ffffff;
+  --fg: #111418;
+  --muted: #4a5360;
+  --panel: #f3f5f8;
+  --border: #c9d0da;
+  --accent: #0b57d0;
+  --accent-fg: #ffffff;
+  --card: #fff4d6;
+  --card-border: #a86b00;
+  --focus: #ff8a00;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1216;
+    --fg: #eef1f5;
+    --muted: #a9b2bf;
+    --panel: #1a1f26;
+    --border: #364050;
+    --accent: #8ab4ff;
+    --accent-fg: #0f1216;
+    --card: #3a2e10;
+    --card-border: #e0a83a;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 1.125rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header, main { max-width: 60rem; margin: 0 auto; padding: 1rem; }
+header { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: baseline; border-bottom: 1px solid var(--border); }
+header h1 { font-size: 1.4rem; margin: 0; }
+section { background: var(--panel); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1rem; margin: 1rem 0; }
+h2 { font-size: 1.25rem; margin: 0 0 0.75rem; }
+h3 { font-size: 1.05rem; margin: 0.75rem 0 0.25rem; }
+.row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.muted { color: var(--muted); }
+.pre { white-space: pre-line; }
+.status { font-weight: 600; }
+button { font: inherit; min-height: 2.75rem; padding: 0.5rem 1rem; border-radius: 0.5rem; border: 2px solid var(--accent); background: var(--bg); color: var(--fg); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--accent-fg); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+input, select, textarea { font: inherit; padding: 0.5rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--bg); color: var(--fg); max-width: 100%; }
+textarea { width: 100%; min-height: 4rem; }
+label { display: inline-flex; flex-direction: column; gap: 0.25rem; }
+label.inline { flex-direction: row; align-items: center; gap: 0.5rem; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.card { background: var(--card); border: 2px solid var(--card-border); border-radius: 0.75rem; padding: 1rem; margin: 0.75rem 0; }
+.transcript { max-height: 16rem; overflow-y: auto; }
+.transcript p { margin: 0.25rem 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+code.room { font-size: 1.25rem; letter-spacing: 0.15em; }
+details.dev { border-style: dashed; }

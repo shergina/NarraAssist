@@ -4,7 +4,7 @@
 
 **Dubhacks 2026**
 
-**Status:** planning. The code is built during DubHacks '26.
+**Status:** skeleton running with mock data. Features are built during DubHacks '26.
 
 A hackathon prototype that helps blind and low-vision (BLV) people follow Zoom presentations.
 
@@ -49,7 +49,7 @@ cd ZoomInSight
 npm install
 ```
 
-Copy the example settings file and add a Gemini key from https://aistudio.google.com/apikey.
+Copy the example settings file. It starts in mock mode, so the app runs with canned data and no key. For real Gemini calls, set `MOCK_GEMINI=0` and add a key from https://aistudio.google.com/apikey.
 
 ```bash
 cp .env.example .env

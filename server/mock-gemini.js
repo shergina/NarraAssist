@@ -1,0 +1,79 @@
+// Owner: Person 1. Canned answers so everyone can build without a Gemini key.
+// Shapes must match docs/ARCHITECTURE.md exactly, same as the real calls.
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const SLIDES = [
+  {
+    number: 1,
+    title: "Welcome to ZoomInSight",
+    text: "Following presentations without seeing the screen\nDubHacks 2026",
+    visuals: "",
+    overview: "This is the title slide. The talk is about following presentations without seeing the screen.",
+  },
+  {
+    number: 2,
+    title: "Quarterly revenue",
+    text: "Revenue by quarter, in millions of dollars",
+    visuals: "A bar chart with four bars. Q1 is 2.1 million, Q2 is 2.4, Q3 is 3.0 and Q4 is 3.6. Each quarter is higher than the last.",
+    overview: "Revenue grew every quarter this year, from 2.1 million dollars in Q1 to 3.6 million in Q4.",
+  },
+  {
+    number: 3,
+    title: "Meet the team",
+    text: "Four students from the University of Washington",
+    visuals: "A photo of four people standing in front of a whiteboard, smiling.",
+    overview: "This slide introduces the team: four University of Washington students, shown in a group photo.",
+  },
+];
+
+const LINES = [
+  "Thanks everyone for joining today.",
+  "As you can see here, the numbers went up a lot.",
+  "Let's move on to the next part.",
+  "I'll pause here for questions.",
+];
+
+let frames = 0;
+let lines = 0;
+
+export async function processDeck() {
+  await wait(1500);
+  return {
+    summary: "A short three-slide deck: a title slide, a revenue chart showing steady growth, and a team introduction.",
+    slides: SLIDES,
+  };
+}
+
+export async function matchSlide(jpeg, slides) {
+  await wait(300);
+  return { slideNumber: (frames++ % slides.length) + 1, confidence: 0.9 };
+}
+
+export async function describeFrame() {
+  await wait(800);
+  const { title, text, visuals, overview } = SLIDES[frames++ % SLIDES.length];
+  return { isSharedContent: true, title, text, visuals, overview };
+}
+
+export async function transcribe() {
+  await wait(400);
+  return LINES[lines++ % LINES.length];
+}
+
+export async function detectCue({ transcript }) {
+  await wait(300);
+  if (/as you can see|this chart|look at/i.test(transcript)) {
+    return {
+      shouldNudge: true,
+      cue: "visuals",
+      reason: 'You said "as you can see" without saying what is on the slide.',
+      suggestion: "Describe the chart out loud, for example: revenue grew from 2.1 to 3.6 million dollars.",
+    };
+  }
+  return { shouldNudge: false, cue: "none", reason: "", suggestion: "" };
+}
+
+export async function answerQuestion({ question }) {
+  await wait(600);
+  return `This is a mock answer to: ${question}. Real answers arrive once Person 1 connects Gemini.`;
+}

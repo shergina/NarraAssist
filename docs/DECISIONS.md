@@ -37,3 +37,7 @@ One line per decision, newest at the bottom, with the reason. Add to it when the
 | Oct 16 | The listener pastes the Zoom meeting link on the listener page for speaker names | The listener shouldn't depend on the presenter doing anything. |
 | Oct 16 | `@zoom/meetingsdk` is an approved dependency for Person 4; the join token is signed with Node's built-in crypto | Needed for the helper. No extra token library. |
 | Oct 16 | Person 4's Zoom lab also tests whether the listener can join only through the SDK with its sound muted; if so, switch to one tab | One tab is a much better product, but only if our audio control survives. |
+| Oct 17 | Start from a shared skeleton: every file exists with its owner, stubs follow the contracts, and the app runs end to end with mock data | Four AI agents starting from an empty repo would each invent their own layout. A skeleton fixes the structure before real work starts. |
+| Oct 17 | Mock Gemini is the default in `.env.example`; Person 1 switches to live | Everyone can run the app the moment they clone it. |
+| Oct 17 | The listener page has a Developer tools panel that simulates the other lanes | Each lane can test its own work without waiting for the others. |
+| Oct 17 | `server/zoom.js` is mounted from the start | Person 4 never has to edit Person 1's files. |

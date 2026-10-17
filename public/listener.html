@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Listener · ZoomInSight</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
+  <div id="sr-alert" class="sr-only" role="alert" aria-live="assertive"></div>
+
+  <header>
+    <h1>Listener</h1>
+    <span>Room <code class="room" id="room"></code></span>
+    <span id="conn" class="muted">Connecting…</span>
+  </header>
+
+  <main>
+    <section aria-labelledby="live-h">
+      <h2 id="live-h">Live meeting</h2>
+      <p id="mode" class="status">Not connected to Zoom yet.</p>
+      <div class="row">
+        <button id="connect" class="primary">Connect to Zoom tab</button>
+        <button id="describe">Describe slide</button>
+        <button id="live" disabled>Skip to live</button>
+      </div>
+      <p class="muted">Join the meeting with Zoom's "Join from your browser" first. When Chrome asks what to share, pick the Zoom tab and turn on "Also share tab audio".</p>
+      <form id="zoom" class="row" aria-label="Speaker names">
+        <label>Zoom meeting link, for speaker names
+          <input id="zoom-link" autocomplete="off">
+        </label>
+        <button type="submit">Turn on speaker names</button>
+      </form>
+      <div id="zoom-container" hidden></div>
+      <form id="request" class="row" aria-label="Ask the presenter to describe">
+        <label>What should the presenter describe? <span class="muted">(optional)</span>
+          <input id="request-note" maxlength="300" autocomplete="off">
+        </label>
+        <button type="submit">Ask presenter to describe</button>
+      </form>
+    </section>
+
+    <section aria-labelledby="slide-h">
+      <h2 id="slide-h">Current slide</h2>
+      <div id="current"></div>
+    </section>
+
+    <section aria-labelledby="deck-h">
+      <h2 id="deck-h">Slides and questions</h2>
+      <p id="deck-status" class="muted"></p>
+      <div id="summary"></div>
+      <form id="ask">
+        <label style="width:100%">Ask about the slides or the talk
+          <textarea id="question" required></textarea>
+        </label>
+        <div class="row"><button type="submit">Ask</button></div>
+      </form>
+      <div id="answers"></div>
+      <h3>All slides</h3>
+      <div id="slides"></div>
+    </section>
+
+    <section aria-labelledby="settings-h">
+      <h2 id="settings-h">Settings</h2>
+      <form id="settings"></form>
+    </section>
+
+    <section aria-labelledby="keys-h">
+      <h2 id="keys-h">Keyboard shortcuts</h2>
+      <ul id="shortcuts"></ul>
+      <p class="muted">On a Mac, Alt is the Option key.</p>
+    </section>
+
+    <section aria-labelledby="transcript-h">
+      <h2 id="transcript-h">Transcript</h2>
+      <div id="transcript" class="transcript" tabindex="0" aria-label="Transcript"></div>
+    </section>
+
+    <section>
+      <details class="dev">
+        <summary>Developer tools</summary>
+        <p class="muted">Simulate the parts other lanes haven't built yet.</p>
+        <div class="row">
+          <button id="dev-meeting">Simulate a meeting connection</button>
+          <button id="dev-slide">Simulate slide change</button>
+          <button id="dev-speaker">Simulate new speaker</button>
+          <button id="dev-say">Simulate "as you can see"</button>
+          <button id="dev-quiet">Simulate presenter going quiet</button>
+        </div>
+      </details>
+    </section>
+  </main>
+  <script type="module" src="/js/listener.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ZoomInSight</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header><h1>ZoomInSight</h1></header>
+  <main>
+    <p>Follow a Zoom presentation without listening to the presenter and your screen reader at the same time.</p>
+    <section aria-labelledby="create-h">
+      <h2 id="create-h">Start a meeting room</h2>
+      <p>One room per meeting. Open the listener link yourself and send the presenter link to the speaker.</p>
+      <button id="create" class="primary">Create room</button>
+      <div id="links" hidden>
+        <p>Room code <code class="room" id="code"></code></p>
+        <p><a id="listener-link">Listener page</a></p>
+        <p><a id="presenter-link">Presenter page</a></p>
+      </div>
+    </section>
+    <section aria-labelledby="join-h">
+      <h2 id="join-h">Join a room</h2>
+      <form id="join" class="row">
+        <label>Room code <input id="join-code" required autocomplete="off" autocapitalize="characters"></label>
+        <button type="submit" value="listener" class="primary">Join as listener</button>
+        <button type="submit" value="presenter">Join as presenter</button>
+      </form>
+    </section>
+    <p id="health" class="muted" role="status"></p>
+  </main>
+  <script type="module" src="/js/home.js"></script>
+</body>
+</html>

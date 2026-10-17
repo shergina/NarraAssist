@@ -22,7 +22,7 @@ Copy `.env.example` to `.env` and set `GEMINI_API_KEY`. Never commit `.env`.
 
 | Owner | Lane | Files |
 |---|---|---|
-| Person 1 | AI brain | everything in `server/` except `server/zoom.js`, plus `scripts/`, `package.json`, `.env.example` |
+| Person 1 | AI brain | everything in `server/` except `server/zoom.js` (includes `mock-gemini.js`), plus `scripts/`, `package.json`, `.env.example`, `.github/`, `.vscode/` |
 | Person 2 | Live audio | `public/js/audio-engine.js`, `public/js/capture.js`, `public/js/worklets/`, `public/audio-lab.html`, `public/js/audio-lab.js` |
 | Person 3 | Listener experience | `public/listener.html`, `public/index.html`, `public/js/listener.js`, `public/js/home.js`, `public/js/speech.js`, `public/js/earcons.js`, `public/js/settings.js`, `public/js/common.js`, `public/js/socket.js`, `public/css/styles.css` |
 | Person 4 | Presenter, Zoom, demo | `public/presenter.html`, `public/js/presenter.js`, `public/css/presenter.css`, `public/js/zoom-helper.js`, `public/zoom-lab.html`, `public/js/zoom-lab.js`, `server/zoom.js`, `docs/DEMO.md` |
@@ -53,4 +53,4 @@ Do not edit another person's files. Message them instead. Change a contract in d
 
 ## Current state
 
-No code yet. Everything is built during DubHacks '26, to the contracts in docs/ARCHITECTURE.md. The commands above work once Person 1 has added `package.json`.
+A skeleton runs end to end with mock data. Every file exists and names its owner at the top. Stubs are marked `TODO(Person N)`: replace them with the real thing, keeping the function names and shapes from docs/ARCHITECTURE.md. The listener page has a Developer tools panel that simulates a meeting, slide changes, speakers and presenter speech, so each lane can test without the others.
