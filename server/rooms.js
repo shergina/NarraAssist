@@ -6,10 +6,13 @@ import { HttpError } from "./errors.js";
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const rooms = new Map();
 
-const CODE = /^[A-Z0-9]{4,12}$/;
+const CODE = /^[A-Z0-9]{4,24}$/;
+
+// "884 076 2216" or "abc-123" -> "8840762216" / "ABC123". Pages and sockets send the raw text; be forgiving.
+export const normalizeCode = (id) => String(id || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 export function createRoom(wanted) {
-  let id = String(wanted || "").trim().toUpperCase();
+  let id = normalizeCode(wanted);
   if (!CODE.test(id) || rooms.has(id)) {
     do id = Array.from({ length: 6 }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
     while (rooms.has(id));
@@ -32,7 +35,7 @@ export function createRoom(wanted) {
 
 // Unknown but well-formed codes are created on the spot, so a page that outlives a server restart keeps working.
 export function findRoom(id) {
-  const code = String(id || "").trim().toUpperCase();
+  const code = normalizeCode(id);
   if (rooms.has(code)) return rooms.get(code);
   if (!CODE.test(code)) return null;
   console.log(`[room] ${code} created on first use`);
@@ -41,7 +44,7 @@ export function findRoom(id) {
 
 export function getRoom(id) {
   const room = findRoom(id);
-  if (!room) throw new HttpError(404, "That doesn't look like a room code.");
+  if (!room) throw new HttpError(404, "That doesn't look like a room code. Use the link from Create room.");
   return room;
 }
 
