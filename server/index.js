@@ -2,6 +2,9 @@
 import express from "express";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import * as gemini from "./gemini.js";
 import { HttpError } from "./errors.js";
 import { createRoom, getRoom, publicState, broadcast, setCurrentSlide, slideByNumber, addTranscript } from "./rooms.js";
@@ -62,13 +65,30 @@ app.post("/api/rooms/:id/frame", express.raw({ type: "image/jpeg", limit: "8mb" 
     if (d.isSharedContent) slide = { number: d.slideNumber || null, title: d.title, text: d.text, visuals: d.visuals, overview: d.overview, summary: d.summary };
     else reason = "nothing-shared";
   }
-  if (!slide && reason === "nothing-shared" && room.current) {
+  // One empty frame can be a glitch in slide detection. Clear the slide only after two in a row.
+  room.emptyFrames = reason === "nothing-shared" ? (room.emptyFrames || 0) + 1 : 0;
+  if (!slide && room.emptyFrames >= 2 && room.current) {
     room.current = null;
     broadcast(room, { type: "slide", slide: null, source: "screen" });
   }
   const changed = slide ? setCurrentSlide(room, slide, "screen") : false;
+  console.log(`[frame] ${room.id} ${Math.round(req.body.length / 1024)} KB -> ${reason}${slide ? `: "${slide.title}"` : ""}`);
+  if (process.env.DEBUG_FRAMES === "1") saveFrame(room, req.body, reason);
   res.json({ changed, reason, slide: room.current });
 });
+
+// With DEBUG_FRAMES=1 in .env, every frame is saved so slide detection can be checked by eye.
+const FRAME_DIR = join(tmpdir(), "zoominsight-frames");
+function saveFrame(room, jpeg, reason) {
+  try {
+    mkdirSync(FRAME_DIR, { recursive: true });
+    const name = `${new Date().toISOString().replace(/[:.]/g, "-")}-${room.id}-${reason}.jpg`;
+    writeFileSync(join(FRAME_DIR, name), jpeg);
+    console.log(`[frame] saved ${join(FRAME_DIR, name)}`);
+  } catch (err) {
+    console.warn("[frame] could not save:", err.message);
+  }
+}
 
 app.post("/api/rooms/:id/ask", async (req, res) => {
   const room = getRoom(req.params.id);
