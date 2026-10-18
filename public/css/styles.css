@@ -117,6 +117,8 @@
 :root[data-bold="on"] body { font-weight: 600; }
 :root[data-bold="on"] h1, :root[data-bold="on"] h2, :root[data-bold="on"] h3, :root[data-bold="on"] button, :root[data-bold="on"] .status { font-weight: 800; }
 * { box-sizing: border-box; }
+/* The hidden attribute always wins, even over display rules on buttons, rows and sections. */
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 1.125rem/var(--leading) var(--font); letter-spacing: var(--tracking); word-spacing: var(--word-gap); }
 header, main { max-width: 72rem; margin: 0 auto; padding: 1rem; }
 main p, dialog p { max-width: 70ch; overflow-wrap: anywhere; }
