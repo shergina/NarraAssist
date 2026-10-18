@@ -72,6 +72,15 @@
       <p id="deck-status" class="muted" aria-live="off"></p>
       <div id="deck-content" hidden>
       <div id="summary"></div>
+      <h3 id="deck-view-h">Slide view</h3>
+      <p id="deck-view-status" role="status"></p>
+      <div class="row" role="group" aria-label="Browse the slide view. This does not change the live slide.">
+        <button id="dv-prev" type="button">Previous slide</button>
+        <button id="dv-next" type="button">Next slide</button>
+        <button id="dv-live" type="button" hidden>Back to live slide</button>
+        <a id="dv-open" class="button" href="#" target="_blank" rel="noopener">Open slides in a new tab</a>
+      </div>
+      <iframe id="deck-preview" class="preview" title="The slides, one page at a time"></iframe>
       <h3>All slides</h3>
       <div id="slides"></div>
 
