@@ -30,4 +30,7 @@ section[hidden], #preview-block[hidden], #notify[hidden], #notify-status[hidden]
 /* "Go to" sits in front of its dropdown, on the same baseline as the buttons. */
 #slide-controls label.inline { display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
 #slide-controls select { min-height: 2.75rem; }
-#notify-status { margin: 0; }
+/* A state chip, in the same family as the room code and the "From the AI" label. */
+.chip { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 2.75rem; margin: 0; padding: 0.5rem 1rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; border: 2px solid transparent; }
+.chip span[aria-hidden] { line-height: 1; }
+:root[data-contrast="high"] .chip { background: var(--raised); color: var(--fg); border-color: var(--fg); }
