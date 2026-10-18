@@ -258,3 +258,8 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
 .field-row > label { display: flex; flex-direction: column; gap: 0.3rem; flex: 1 1 16rem; min-width: 0; }
 .field-row > label > input { width: 100%; min-height: 2.75rem; }
 .field-row > button { min-height: 2.75rem; }
+
+/* Breadcrumb in the page header: the product name links home. */
+.crumb { flex: 1 0 100%; margin: 0 0 -0.25rem; font-weight: 600; }
+.crumb a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; border-radius: 0.25rem; }
+.crumb span { opacity: 0.7; margin-left: 0.25rem; }

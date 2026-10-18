@@ -12,6 +12,10 @@ import { Speaker, announce } from "./speech.js";
 applyDisplaySettings();
 
 const room = roomCode();
+
+window.addEventListener("beforeunload", (e) => {
+  if (state.capture) e.preventDefault(); // Chrome shows its own "Leave site?" prompt
+});
 const speaker = new Speaker();
 const state = {
   slide: null,
