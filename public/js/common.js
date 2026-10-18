@@ -2,8 +2,8 @@
 if (!document.querySelector('link[rel="icon"]')) {
   const icon = document.createElement("link");
   icon.rel = "icon";
-  icon.type = "image/png";
-  icon.href = "/NarraAssist_Logo-removebg.png";
+  icon.type = "image/svg+xml";
+  icon.href = "/NarraAssistLogoWhite.svg";
   document.head.append(icon);
 }
 
