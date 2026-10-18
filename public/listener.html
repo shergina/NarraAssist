@@ -29,20 +29,10 @@
       <p id="mode" class="status" aria-live="off">Not connected to Zoom yet.</p>
       <p id="screen-reader-help" class="muted" hidden>When the screen reader finishes the slide description, press Alt+Shift+D to return to the presenter and catch up.</p>
       <ol id="setup-steps" class="steps">
+        <li>Join the Zoom link from your browser, using Zoom's <strong>"Join from your browser"</strong> option.</li>
         <li>
-          <strong>Open the Zoom link in another tab and choose "Join from your browser".</strong>
-        </li>
-        <li>
-          <strong>Press Connect, then in Chrome's picker choose the Zoom tab and turn on "Also share tab audio".</strong>
+          Press Connect, then choose the Zoom tab and turn on <strong>"Also share tab audio"</strong>.
           <button id="connect" class="primary">Connect to Zoom tab</button>
-        </li>
-        <li>
-          <strong>Optional: speaker names.</strong>
-          <form id="zoom" class="field-row" aria-label="Speaker names">
-            <label>Zoom meeting link <input id="zoom-link" autocomplete="off"></label>
-            <label>Your name <input id="listener-name" autocomplete="name"></label>
-            <button type="submit">Turn on speaker names</button>
-          </form>
         </li>
       </ol>
       <div id="live-controls" class="row" hidden>
@@ -52,6 +42,15 @@
       </div>
       <p id="floating-video-status" class="muted" role="status" hidden></p>
       <div id="capture-preview" class="capture-source" aria-hidden="true"></div>
+      <div id="speaker-names" hidden>
+        <h3>Speaker names</h3>
+        <p>To hear who is talking, add the Zoom link and your name.</p>
+        <form id="zoom" class="field-row" aria-label="Speaker names">
+          <label class="grow-2">Zoom meeting link <input id="zoom-link" autocomplete="off"></label>
+          <label>Your name <input id="listener-name" autocomplete="name"></label>
+          <button type="submit">Turn on speaker names</button>
+        </form>
+      </div>
       <div id="zoom-container" hidden></div>
     </section>
 

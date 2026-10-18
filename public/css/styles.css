@@ -245,10 +245,15 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
 :root[data-contrast="high"] .msg.assistant { border-color: var(--fg); }
 
 /* Setup as numbered steps, and forms whose input and button line up. */
-.steps { margin: 0.75rem 0 0; padding-left: 1.5rem; display: grid; gap: 1rem; }
-.steps > li { padding-left: 0.25rem; }
-.steps > li > strong { display: block; margin-bottom: 0.6rem; }
-.steps > li > p { margin: 0 0 0.6rem; }
+.steps { margin: 1rem 0 0; padding-left: 1.5rem; display: grid; gap: 1.25rem; max-width: 60ch; }
+.steps > li { padding-left: 0.25rem; font-weight: 400; }
+.steps > li > button { display: block; margin-top: 0.6rem; }
+#speaker-names { margin-top: 1.5rem; }
+#speaker-names h3 { margin: 0 0 0.25rem; }
+#speaker-names p { margin: 0 0 0.6rem; }
+.field-row > label.grow-2 { flex: 2 1 20rem; }
+/* No gray text: this app is for people with low vision. Secondary text keeps its class but not its color. */
+.muted { color: var(--fg); }
 .field-row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
 .field-row > label { display: flex; flex-direction: column; gap: 0.3rem; flex: 1 1 16rem; min-width: 0; }
 .field-row > label > input { width: 100%; min-height: 2.75rem; }
