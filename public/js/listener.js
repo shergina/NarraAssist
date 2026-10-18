@@ -19,6 +19,7 @@ window.addEventListener("beforeunload", (e) => {
 const speaker = new Speaker();
 const state = {
   slide: null,
+  nothingShared: false, // the server said the shared screen is empty
   slides: [],
   deck: null,
   summary: "",
@@ -84,6 +85,10 @@ function onMessage(msg) {
       break;
     case "slide":
       state.slide = msg.slide;
+      if (!msg.slide) {
+        state.nothingShared = true;
+        say("Nothing is being shared right now.");
+      }
       renderSlide();
       renderFloatingVideo();
       // The knock for screen changes already played locally. Presenter-driven changes knock here.
@@ -107,11 +112,16 @@ function onMessage(msg) {
 async function onLocalSlideChange({ at, frame }) {
   earcons.slideChanged();
   try {
-    await api(`/api/rooms/${room}/frame`, {
+    const out = await api(`/api/rooms/${room}/frame`, {
       method: "POST",
       body: frame,
       headers: { "Content-Type": "image/jpeg", "X-Captured-At": String(at) },
     });
+    state.nothingShared = out.reason === "nothing-shared";
+    if (out.slide && !state.slide) {
+      state.slide = out.slide; // a dropped socket must never leave the page without the slide
+      renderSlide();
+    } else if (!out.slide) renderSlide();
   } catch (err) {
     console.warn("Frame check failed:", err.message);
     say("Couldn't send the slide for description. Check your connection and try again.", { assertive: true });
@@ -187,7 +197,7 @@ function renderFloatingVideo() {
   const active = Boolean(state.pipWindow && !state.pipWindow.closed);
   button.disabled = !supported || (!state.capture && !active);
   button.setAttribute("aria-pressed", String(active));
-  button.textContent = active ? "Close picture-in-picture" : "Open picture-in-picture";
+  button.textContent = active ? "Close floating player" : "Open floating player";
   $("#floating-video-status").textContent = !supported
     ? "The floating player needs Chrome."
     : active
@@ -484,7 +494,7 @@ function slideSpeech(slide, { full = false } = {}) {
 }
 
 function describeSlide(slide = state.slide, { full = false } = {}) {
-  if (!slide) return say("No slide yet.");
+  if (!slide) return say(emptySlideText());
   speaker.cancel();
   state.describing = true;
   state.manualDescriptionEnd = false;
@@ -529,10 +539,13 @@ function renderMode() {
   // Live controls exist only while connected. "Stop and catch up" plays what was missed; "Jump to live" drops it.
   const connected = Boolean(audio);
   $("#live-controls").hidden = !connected;
+  $("#slide-section").hidden = !connected;
+  if (!connected) state.nothingShared = false;
   $("#speaker-names").hidden = !connected;
   $("#request").hidden = !connected;
   $("#setup-steps").hidden = connected && Boolean(state.capture);
   $("#describe").hidden = !connected;
+  if (!state.slide) renderSlide();
   $("#describe").textContent = describeLabel();
   $("#live").hidden = !connected || audio.mode === "live";
   $("#floating-video-status").hidden = !connected;
@@ -675,8 +688,13 @@ function slideBlock(slide, headingTag) {
     h("button", { onclick: () => describeSlide(slide, { full: true }) }, "Read full text"));
 }
 
+function emptySlideText() {
+  if (!state.audio) return "Connect to the Zoom tab to follow the current slide.";
+  return state.nothingShared ? "Nothing is being shared right now." : "Waiting for the first slide.";
+}
+
 function renderSlide() {
-  $("#current").replaceChildren(state.slide ? slideBlock(state.slide, "h3") : h("p", { class: "muted" }, "No slide yet."));
+  $("#current").replaceChildren(state.slide ? slideBlock(state.slide, "h3") : h("p", {}, emptySlideText()));
 }
 
 function renderDeck() {

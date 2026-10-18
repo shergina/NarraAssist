@@ -272,3 +272,5 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
 .crumb a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; border-radius: 0.25rem; }
 .crumb .site-brand { text-decoration: none; }
 .crumb-chevron { width: 0.9em; height: 0.9em; opacity: 0.75; flex: none; }
+
+.tagline { max-width: none; font-size: 1.15rem; }
