@@ -1,7 +1,26 @@
 /* Owner: Person 4. Styles for the presenter page only. */
-.card .source { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 
 /* The shared .row sets display:flex, which would otherwise override the hidden attribute. */
 .row[hidden], .preview[hidden] { display: none; }
 
-.preview { display: block; width: 100%; height: 30rem; margin: 0.75rem 0; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--bg); }
+/* "From the AI" or "From a listener" label on each alert card. */
+.card .source { display: inline-block; margin: 0 0 0.25rem; padding: 0.15rem 0.65rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.card h3 { margin-top: 0.25rem; }
+.card .row { margin-top: 0.75rem; }
+
+/* Each kind of prompt gets its own color. The title and the "From ..." label say the same
+   thing in words, so color is never the only signal. "Describe what's on screen" keeps the
+   default amber card. High contrast mode keeps its single yellow style. */
+:root:not([data-contrast="high"]) .card.cue-share-file { --card: #e3efff; --card-border: #1d4ed8; }
+:root:not([data-contrast="high"]) .card.cue-self-description { --card: #dcf5ee; --card-border: #0f766e; }
+:root:not([data-contrast="high"]) .card.cue-request { --card: #fde8f2; --card-border: #be185d; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-contrast="high"]):not([data-theme="light"]) .card.cue-share-file { --card: #12284d; --card-border: #8ab4ff; }
+  :root:not([data-contrast="high"]):not([data-theme="light"]) .card.cue-self-description { --card: #0f3a35; --card-border: #5eead4; }
+  :root:not([data-contrast="high"]):not([data-theme="light"]) .card.cue-request { --card: #3d1230; --card-border: #f9a8d4; }
+}
+:root[data-theme="dark"]:not([data-contrast="high"]) .card.cue-share-file { --card: #12284d; --card-border: #8ab4ff; }
+:root[data-theme="dark"]:not([data-contrast="high"]) .card.cue-self-description { --card: #0f3a35; --card-border: #5eead4; }
+:root[data-theme="dark"]:not([data-contrast="high"]) .card.cue-request { --card: #3d1230; --card-border: #f9a8d4; }
+
+.preview { display: block; width: 100%; height: 30rem; margin: 0.75rem 0; border: 2px solid var(--border); border-radius: 0.75rem; background: var(--raised); }
