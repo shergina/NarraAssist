@@ -525,6 +525,7 @@ function renderMode() {
   // Live controls exist only while connected. "Stop and catch up" plays what was missed; "Jump to live" drops it.
   const connected = Boolean(audio);
   $("#live-controls").hidden = !connected;
+  $("#speaker-names").hidden = !connected;
   $("#request").hidden = !connected;
   $("#setup-steps").hidden = connected && Boolean(state.capture);
   $("#describe").hidden = !connected;
