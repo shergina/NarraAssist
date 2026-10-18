@@ -23,7 +23,10 @@ a slide, a document, a website, or other content.
 First decide whether shared content is visible. Ignore participant video
 tiles, participant names, reactions, the meeting toolbar, and the mouse
 cursor. If nothing is being shared, set isSharedContent to false and
-leave the other fields empty.
+leave the other fields empty. A blank or black shared area, a loading
+screen, or an error or status message from the meeting software, such
+as "Something went wrong" or "Please rejoin", also counts as nothing
+shared: do not describe it as content.
 
 If content is shared, fill in these fields.
 
