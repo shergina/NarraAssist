@@ -30,17 +30,14 @@
       <p id="screen-reader-help" class="muted" hidden>When the screen reader finishes the slide description, press Alt+Shift+D to return to the presenter and catch up.</p>
       <ol id="setup-steps" class="steps">
         <li>
-          <strong>Join the meeting in Zoom's browser client.</strong>
-          <p>Open the Zoom link in another Chrome tab and choose "Join from your browser". Keep that tab open.</p>
+          <strong>Open the Zoom link in another tab and choose "Join from your browser".</strong>
         </li>
         <li>
-          <strong>Connect this page to that tab.</strong>
-          <p>When Chrome asks what to share, pick the Zoom tab and turn on "Also share tab audio".</p>
+          <strong>Press Connect, then in Chrome's picker choose the Zoom tab and turn on "Also share tab audio".</strong>
           <button id="connect" class="primary">Connect to Zoom tab</button>
         </li>
         <li>
           <strong>Optional: speaker names.</strong>
-          <p>Paste the Zoom link and your name, and the page will say who is talking.</p>
           <form id="zoom" class="field-row" aria-label="Speaker names">
             <label>Zoom meeting link <input id="zoom-link" autocomplete="off"></label>
             <label>Your name <input id="listener-name" autocomplete="name"></label>
