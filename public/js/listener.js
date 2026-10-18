@@ -239,7 +239,7 @@ function buildFloatingPlayer(pipWindow) {
   const player = pipDocument.createElement("main");
   player.className = "pip-player";
   const heading = pipDocument.createElement("h1");
-  heading.textContent = "ZoomInSight meeting";
+  heading.textContent = "NarraAssist meeting";
   const videoContainer = pipDocument.createElement("div");
   videoContainer.className = "pip-video";
   videoContainer.setAttribute("aria-label", "Shared Zoom tab video");
