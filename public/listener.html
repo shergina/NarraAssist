@@ -16,16 +16,10 @@
     <span>Room <code class="room" id="room"></code></span>
     <span id="conn" class="muted" aria-live="off">Connecting…</span>
     <nav class="site-nav" aria-label="Listener page navigation">
-      <a href="/">Home</a>
       <a href="#live-h">Live meeting</a>
-      <a href="#slide-h">Current slide</a>
       <a href="#deck-h">Slides and questions</a>
       <a href="#transcript-h">Transcript</a>
-      <details class="nav-dropdown">
-        <summary>Accessibility settings</summary>
-        <div id="display-settings"></div>
-      </details>
-      <button id="open-settings" type="button">Listener settings</button>
+      <button id="open-settings" type="button">Settings</button>
     </nav>
   </header>
 
@@ -34,33 +28,45 @@
       <h2 id="live-h">Live meeting</h2>
       <p id="mode" class="status" aria-live="off">Not connected to Zoom yet.</p>
       <p id="screen-reader-help" class="muted" hidden>When the screen reader finishes the slide description, press Alt+Shift+D to return to the presenter and catch up.</p>
-      <div class="row">
-        <button id="connect" class="primary">Connect to Zoom tab</button>
+      <ol id="setup-steps" class="steps">
+        <li>
+          <strong>Join the meeting in Zoom's browser client.</strong>
+          <p>Open the Zoom link in another Chrome tab and choose "Join from your browser". Keep that tab open.</p>
+        </li>
+        <li>
+          <strong>Connect this page to that tab.</strong>
+          <p>When Chrome asks what to share, pick the Zoom tab and turn on "Also share tab audio".</p>
+          <button id="connect" class="primary">Connect to Zoom tab</button>
+        </li>
+        <li>
+          <strong>Optional: speaker names.</strong>
+          <p>Paste the Zoom link and your name, and the page will say who is talking.</p>
+          <form id="zoom" class="field-row" aria-label="Speaker names">
+            <label>Zoom meeting link <input id="zoom-link" autocomplete="off"></label>
+            <label>Your name <input id="listener-name" autocomplete="name"></label>
+            <button type="submit">Turn on speaker names</button>
+          </form>
+        </li>
+      </ol>
+      <div id="live-controls" class="row" hidden>
         <button id="describe" hidden>Describe slide</button>
         <button id="live" hidden>Jump to live, skip what I missed</button>
         <button id="floating-video" type="button" aria-pressed="false" hidden>Open floating player</button>
       </div>
       <p id="floating-video-status" class="muted" role="status" hidden></p>
       <div id="capture-preview" class="capture-source" aria-hidden="true"></div>
-      <p class="muted">Join the meeting with Zoom's "Join from your browser" first. When Chrome asks what to share, pick the Zoom tab and turn on "Also share tab audio".</p>
-      <form id="zoom" class="row" aria-label="Speaker names">
-        <label>Zoom meeting link, for speaker names
-          <input id="zoom-link" autocomplete="off">
-        </label>
-        <button type="submit">Turn on speaker names</button>
-      </form>
       <div id="zoom-container" hidden></div>
-      <form id="request" class="row" aria-label="Ask the presenter to describe">
-        <label>What should the presenter describe? <span class="muted">(optional)</span>
-          <input id="request-note" maxlength="300" autocomplete="off">
-        </label>
-        <button type="submit">Ask presenter to describe</button>
-      </form>
     </section>
 
     <section aria-labelledby="slide-h">
       <h2 id="slide-h">Current slide</h2>
       <div id="current"></div>
+      <form id="request" class="field-row" aria-label="Ask the presenter to describe" hidden>
+        <label>Ask the presenter to describe something <span class="muted">(optional note)</span>
+          <input id="request-note" maxlength="300" autocomplete="off">
+        </label>
+        <button type="submit">Ask presenter to describe</button>
+      </form>
     </section>
 
     <section aria-labelledby="deck-h">
@@ -112,8 +118,8 @@
   <dialog id="settings-dialog" aria-labelledby="settings-h" aria-describedby="settings-description">
     <div class="settings-heading">
       <div>
-        <h2 id="settings-h">Listener settings</h2>
-        <p id="settings-description" class="muted">Adjust slide alerts and playback preferences. Changes are saved in this browser.</p>
+        <h2 id="settings-h">Settings</h2>
+        <p id="settings-description" class="muted">Display, sounds, speech and catch-up. Changes are saved in this browser.</p>
       </div>
       <button id="close-settings" type="button">Close</button>
     </div>
