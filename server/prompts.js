@@ -149,6 +149,14 @@ says so. Keep every number, name, and date that matters.
 
 ${SPOKEN_RULES}`;
 
+// Six seconds of meeting audio. The transcript feeds the cue check, so exact wording matters more than polish.
+export const TRANSCRIBE = `This is six seconds of audio from a video meeting. Write down exactly
+what is said, word for word, in the language spoken. Do not summarize,
+translate, or fix grammar. Leave out speaker names, timestamps, and
+notes such as [music] or [laughter]. If no one speaks, or the speech
+can't be made out, return an empty text. Never guess words that aren't
+there.`;
+
 // Which page of the uploaded deck is on the shared screen right now?
 export function matchSlide(slides) {
   const list = slides
