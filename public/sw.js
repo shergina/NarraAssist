@@ -24,9 +24,10 @@ async function showPending() {
     // Offline or the server restarted. Fall through to the generic notice below.
   }
 
-  // An open, visible presenter page already shows the card, plays the sound and vibrates.
+  // A presenter page in the window the presenter is using already shows the card, plays the sound and vibrates.
+  // "Visible" isn't enough: a page beside another window, or on a second screen, is visible but unwatched.
   const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-  if (windows.some((w) => w.visibilityState === "visible" && new URL(w.url).pathname.startsWith("/presenter"))) return;
+  if (windows.some((w) => w.focused && new URL(w.url).pathname.startsWith("/presenter"))) return;
 
   const shown = new Set((await self.registration.getNotifications()).map((n) => n.tag));
   const fresh = data.items.filter((item) => !shown.has(item.id));

@@ -99,10 +99,12 @@ export async function describeFrame(jpeg) {
   return generateJson(models.main, [inline(jpeg, "image/jpeg"), { text: prompts.DESCRIBE_FRAME }], schema, { fast: true });
 }
 
-// WAV bytes -> transcript text, or "" for no speech
+// WAV bytes -> transcript text, or "" for no speech. Fast model, thinking off: a chunk arrives every 6 seconds.
 export async function transcribe(wav) {
   if (useMock) return mock.transcribe(wav);
-  notBuilt("transcribe");
+  const schema = { type: Type.OBJECT, properties: { text: { type: Type.STRING } }, required: ["text"] };
+  const out = await generateJson(models.fast, [inline(wav, "audio/wav"), { text: prompts.TRANSCRIBE }], schema, { fast: true });
+  return (out.text || "").trim();
 }
 
 // { slide, transcript, dismissed } -> { shouldNudge, cue: "visuals" | "share-file" | "self-description" | "none", reason, suggestion }
