@@ -183,7 +183,7 @@ function renderFloatingVideo() {
   const active = Boolean(state.pipWindow && !state.pipWindow.closed);
   button.disabled = !supported || (!state.capture && !active);
   button.setAttribute("aria-pressed", String(active));
-  button.textContent = active ? "Hide floating Zoom video" : "Show floating Zoom video";
+  button.textContent = active ? "Close picture-in-picture" : "Open picture-in-picture";
   $("#floating-video-status").textContent = !supported
     ? "Interactive floating player is not supported by this browser."
     : active
