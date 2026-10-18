@@ -7,13 +7,20 @@
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <header><h1>ZoomInSight</h1></header>
-  <main>
+  <main id="main-content" tabindex="-1">
     <p>Follow a Zoom presentation without listening to the presenter and your screen reader at the same time.</p>
+    <section aria-labelledby="display-h">
+      <h2 id="display-h">Display and text</h2>
+      <p class="muted">These preferences are saved in this browser and also apply on the listener page.</p>
+      <div id="display-settings"></div>
+    </section>
     <section aria-labelledby="create-h">
       <h2 id="create-h">Start a meeting room</h2>
       <p>One room per meeting. Open the listener link yourself and send the presenter link to the speaker.</p>
       <button id="create" class="primary">Create room</button>
+      <p id="room-status" class="muted" role="status" aria-live="polite" aria-atomic="true"></p>
       <div id="links" hidden>
         <p>Room code <code class="room" id="code"></code></p>
         <p><a id="listener-link">Listener page</a></p>

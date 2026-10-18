@@ -7,19 +7,20 @@
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
   <div id="sr-alert" class="sr-only" role="alert" aria-live="assertive"></div>
 
   <header>
     <h1>Listener</h1>
     <span>Room <code class="room" id="room"></code></span>
-    <span id="conn" class="muted">Connecting…</span>
+    <span id="conn" class="muted" aria-live="off">Connecting…</span>
   </header>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <section aria-labelledby="live-h">
       <h2 id="live-h">Live meeting</h2>
-      <p id="mode" class="status">Not connected to Zoom yet.</p>
+      <p id="mode" class="status" aria-live="off">Not connected to Zoom yet.</p>
       <p id="screen-reader-help" class="muted" hidden>When the screen reader finishes the slide description, press Alt+Shift+D to return to the presenter and catch up.</p>
       <div class="row">
         <button id="connect" class="primary">Connect to Zoom tab</button>
@@ -50,7 +51,7 @@
 
     <section aria-labelledby="deck-h">
       <h2 id="deck-h">Slides and questions</h2>
-      <p id="deck-status" class="muted"></p>
+      <p id="deck-status" class="muted" aria-live="off"></p>
       <div id="summary"></div>
       <form id="ask">
         <label style="width:100%">Ask about the slides or the talk
@@ -58,7 +59,7 @@
         </label>
         <div class="row"><button type="submit">Ask</button></div>
       </form>
-      <div id="answers"></div>
+      <div id="answers" role="region" aria-label="Answers" aria-live="off"></div>
       <h3>All slides</h3>
       <div id="slides"></div>
     </section>
@@ -71,7 +72,7 @@
 
     <section aria-labelledby="transcript-h">
       <h2 id="transcript-h">Transcript</h2>
-      <div id="transcript" class="transcript" tabindex="0" aria-label="Transcript"></div>
+      <div id="transcript" class="transcript" role="region" aria-labelledby="transcript-h" aria-live="off" tabindex="0"></div>
     </section>
 
     <section>

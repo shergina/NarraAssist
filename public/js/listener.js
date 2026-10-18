@@ -6,8 +6,10 @@ import { startCapture, watchSlides } from "./capture.js";
 import { MeetingAudio } from "./audio-engine.js";
 import { parseZoomLink, joinAsHelper, fakeHelper } from "./zoom-helper.js";
 import { earcons } from "./earcons.js";
-import { settings } from "./settings.js";
+import { applyDisplaySettings, appearanceSettings, settings } from "./settings.js";
 import { Speaker, announce } from "./speech.js";
+
+applyDisplaySettings();
 
 const room = roomCode();
 const speaker = new Speaker();
@@ -32,7 +34,11 @@ const state = {
 $("#room").textContent = room || "none";
 const socket = connectSocket(room, "listener", {
   onMessage,
-  onStatus: (s) => ($("#conn").textContent = STATUS_TEXT[s] || s),
+  onStatus: (s) => {
+    const text = STATUS_TEXT[s] || s;
+    $("#conn").textContent = text;
+    say(text, { assertive: s === "unknown-room" });
+  },
 });
 
 // ---------- what the listener hears ----------
@@ -45,9 +51,9 @@ function say(text, options = {}) {
   else announce(text, options);
 }
 
-function flushWaiting() {
+function flushWaiting(prefix = "") {
   const queued = state.waiting.splice(0);
-  const words = queued.map(({ text }) => text);
+  const words = [prefix, ...queued.map(({ text }) => text)].filter(Boolean);
   if (words.length) announce(words.join(" "), { assertive: queued.some(({ options }) => options.assertive) });
 }
 
@@ -65,6 +71,7 @@ function onMessage(msg) {
       if (msg.summary != null) state.summary = msg.summary;
       renderDeck();
       if (msg.deck.status === "ready") say(`Slides are ready: ${msg.deck.slideCount} slides.`);
+      else if (msg.deck.status === "error") say(`Couldn't read the slides: ${msg.deck.error}`, { assertive: true });
       break;
     case "slide":
       state.slide = msg.slide;
@@ -145,7 +152,10 @@ setInterval(() => {
 
 function wireAudio(audio) {
   state.audio = audio;
-  audio.addEventListener("mode", renderMode);
+  audio.addEventListener("mode", (event) => {
+    renderMode();
+    if (event.detail === "catchup") state.waiting.push({ text: "Catching up to live.", options: {} });
+  });
   audio.addEventListener("caught-up", () => {
     earcons.caughtUp();
     say("Back to live.");
@@ -236,7 +246,7 @@ function skipToLive() {
   speaker.cancel();
   state.audio?.skipToLive();
   renderMode();
-  flushWaiting();
+  flushWaiting("Back to live.");
 }
 
 function requestDescription(note = "") {
@@ -341,6 +351,7 @@ function renderSettings() {
         options.map(([value, text]) => h("option", { value, selected: String(settings.get(key)) === String(value) }, text))));
   $("#settings").replaceChildren(
     ...groups,
+    appearanceSettings(),
     h("fieldset", { class: "settings-group" },
       h("legend", {}, "Speech and catch-up"),
       h("div", { class: "settings-options" },
