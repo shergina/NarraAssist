@@ -18,7 +18,7 @@ Zoom web client tab ──(Chrome tab capture: video + audio)──► Listener 
                                                      Presenter page (phone or second screen)
 ```
 
-Rooms are in memory. A server restart clears them.
+Rooms are in memory. A server restart clears their contents (slides, transcript, pending cues), but any well-formed code is re-created on first use, so pages that are already open keep working after a restart. The dev server restarts on every saved file.
 
 ## Shared objects
 
