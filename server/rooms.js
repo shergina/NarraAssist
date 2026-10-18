@@ -4,6 +4,7 @@
 import { randomInt } from "node:crypto";
 import { HttpError } from "./errors.js";
 import { loadDeck, savedRoomIds } from "./store.js";
+import { notifyPresenters } from "./push.js";
 
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const rooms = new Map();
@@ -95,4 +96,25 @@ export function addTranscript(room, text) {
   if (room.transcript.length > 1000) room.transcript.shift();
   broadcast(room, { type: "transcript", entry });
   return entry;
+}
+
+// A nudge or a listener request for the presenter: kept until answered, sent to open presenter pages,
+// and pushed to presenter phones whose page is closed.
+export function addPending(room, item) {
+  room.pending.set(item.id, item);
+  broadcast(room, { type: item.kind, [item.kind]: item }, { role: "presenter" });
+  notifyPresenters(room);
+}
+
+// The presenter answered, from the page or from a notification button. Returns false if it was already answered.
+export function respondTo(room, id, action) {
+  const item = room.pending.get(id);
+  if (!item) return false;
+  room.pending.delete(id);
+  action = action === "accept" ? "accept" : "dismiss";
+  broadcast(room, { type: "resolved", id: item.id }, { role: "presenter" });
+  if (action === "accept" || item.kind === "request") {
+    broadcast(room, { type: "presenter-response", kind: item.kind, action, slide: item.slide }, { role: "listener" });
+  }
+  return true;
 }

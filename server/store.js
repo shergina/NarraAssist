@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync, existsSync, unlink
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const DATA_DIR = process.env.DATA_DIR || fileURLToPath(new URL("../data", import.meta.url));
+export const DATA_DIR = process.env.DATA_DIR || fileURLToPath(new URL("../data", import.meta.url));
 const jsonPath = (id) => join(DATA_DIR, `${id}.json`);
 const pdfPath = (id) => join(DATA_DIR, `${id}.pdf`);
 

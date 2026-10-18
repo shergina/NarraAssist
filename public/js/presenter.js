@@ -95,7 +95,8 @@ function addCard(id, { kind = "", source, title, lines, accept, dismiss }) {
   earcons.attention();
   announce(title, { assertive: true });
   if (navigator.userActivation?.hasBeenActive) navigator.vibrate?.([150, 80, 150]);
-  if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+  // With push on, the service worker shows the notification, even with this page closed.
+  if (!pushOn && document.hidden && "Notification" in window && Notification.permission === "granted") {
     try {
       new Notification(title, { body: lines.filter(Boolean).join(" "), tag: id });
     } catch {
@@ -109,12 +110,82 @@ function removeCard(id) {
   cards.get(id)?.remove();
   cards.delete(id);
   $("#no-alerts").hidden = cards.size > 0;
+  // Answered here or on another device: take it off the lock screen too.
+  swReady?.then((reg) => reg.getNotifications({ tag: id })).then((list) => list.forEach((n) => n.close())).catch(() => {});
+}
+
+// Push notifications. The service worker (/sw.js) keeps a push subscription for this browser, and the server
+// wakes it for every new prompt in this room, so prompts arrive with the page closed or the phone locked.
+// Push needs HTTPS (or localhost). Without it, the page falls back to plain notifications while it is open.
+let pushOn = false;
+const pushSupported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const swReady = pushSupported ? navigator.serviceWorker.register("/sw.js").then(() => navigator.serviceWorker.ready) : null;
+
+function setNotifyButton(text) {
+  $("#notify").textContent = text;
+}
+
+async function subscribePush({ ask }) {
+  const reg = await swReady;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub && !ask) return false;
+  const { publicKey } = await api("/api/push/key");
+  if (sub && toBase64Url(sub.options?.applicationServerKey) !== publicKey) {
+    // The server has a new key, so the old subscription no longer works.
+    await sub.unsubscribe();
+    sub = null;
+  }
+  sub ||= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: fromBase64Url(publicKey) });
+  await api(`/api/rooms/${room}/push`, { method: "POST", json: { endpoint: sub.endpoint } });
+  return true;
+}
+
+async function unsubscribePush() {
+  const sub = await (await swReady).pushManager.getSubscription();
+  if (!sub) return;
+  await api("/api/push/unsubscribe", { method: "POST", json: { endpoint: sub.endpoint } }).catch(() => {});
+  await sub.unsubscribe();
+}
+
+const fromBase64Url = (text) => Uint8Array.from(atob(text.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+const toBase64Url = (buffer) => buffer && btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+// Already allowed on an earlier visit: renew the subscription for this room without asking again.
+if (pushSupported && Notification.permission === "granted") {
+  subscribePush({ ask: false })
+    .then((ok) => ok && ((pushOn = true), setNotifyButton("Turn off notifications")))
+    .catch((err) => console.warn("[push]", err.message));
 }
 
 $("#notify").addEventListener("click", async () => {
   if (!("Notification" in window)) return announce("This browser doesn't support notifications.");
+  if (pushOn) {
+    await unsubscribePush().catch((err) => console.warn("[push]", err.message));
+    pushOn = false;
+    setNotifyButton("Turn on notifications");
+    return announce("Notifications off.");
+  }
   const result = await Notification.requestPermission();
-  $("#notify").textContent = result === "granted" ? "Notifications on" : "Notifications blocked";
+  if (result !== "granted") {
+    setNotifyButton("Notifications blocked");
+    return announce("Notifications are blocked. Allow them in the browser's site settings.");
+  }
+  if (!pushSupported) {
+    setNotifyButton("Notifications on while this page is open");
+    return announce(window.isSecureContext
+      ? "Notifications on, but only while this page is open. This browser can't receive them with the page closed."
+      : "Notifications on, but only while this page is open. Open the page over HTTPS to get them on a locked phone.");
+  }
+  try {
+    await subscribePush({ ask: true });
+    pushOn = true;
+    setNotifyButton("Turn off notifications");
+    announce("Notifications on. Prompts will reach this device even with the page closed.");
+  } catch (err) {
+    console.warn("[push]", err);
+    setNotifyButton("Notifications on while this page is open");
+    announce("Notifications on, but only while this page is open. Push couldn't be set up.");
+  }
 });
 
 $("#deck").addEventListener("change", async (e) => {
