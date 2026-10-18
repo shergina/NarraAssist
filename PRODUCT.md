@@ -94,6 +94,7 @@ Draft shortcuts for the listener page:
 | Repeat the last alert | Alt+Shift+A |
 | Say who is speaking | Alt+Shift+W |
 | Say the current slide's title and number | Alt+Shift+S |
+| Read the full slide text, even when summaries are on | Alt+Shift+F |
 | Ask a question about the slides | Alt+Shift+Q |
 | Mute or unmute my microphone | Alt+Shift+M |
 | Show or hide the floating Zoom video | Alt+Shift+V |

@@ -10,6 +10,7 @@ const DEFAULTS = {
   "voice.rate": 1.2,
   "catchup.maxRate": 2,
   "speech.mode": "voice", // "voice" | "screen-reader"
+  "describe.mode": "full", // "full" reads the slide word for word; "summary" reads the short version
   "display.highContrast": false,
   "display.largeText": false,
   "video.float": true,
