@@ -69,8 +69,9 @@ export function setCurrentSlide(room, slide, source) {
   const a = room.current;
   // Two deck pages are the same slide when their numbers match. Two screenshots are the same slide only when
   // their text matches too, so consecutive slides that share a title still count as a change.
-  const fromDeck = (s) => s.number != null && !s.text?.length === false && room.slides.includes(s);
-  const same = a && slide && (fromDeck(a) && fromDeck(slide) ? a.number === slide.number : a.title === slide.title && (a.text || "") === (slide.text || ""));
+  const fromDeck = (s) => room.slides.includes(s);
+  const sameText = (x, y) => x.title === y.title && (x.text || "") === (y.text || "");
+  const same = a && slide && (fromDeck(a) && fromDeck(slide) ? a.number === slide.number : sameText(a, slide));
   if (same) return false;
   room.current = slide;
   broadcast(room, { type: "slide", slide, source });
