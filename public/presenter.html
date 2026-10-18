@@ -17,12 +17,8 @@
     <span>Room <code class="room" id="room"></code></span>
     <span id="conn" class="muted" aria-live="off">Connecting…</span>
     <nav class="site-nav" aria-label="Presenter page navigation">
-      <a href="/">Home</a>
-      <a href="#alerts-h">Description prompts</a>
-      <a href="#slides-h">Your slides</a>
-      <a href="#transcript-h">What the tool heard</a>
       <details class="nav-dropdown">
-        <summary>Accessibility settings</summary>
+        <summary>Settings</summary>
         <div id="display-settings"></div>
       </details>
     </nav>
@@ -31,25 +27,33 @@
   <main id="main-content" tabindex="-1">
     <p>Keep this page open on your phone or a second screen. It tells you when a blind or low-vision attendee needs something described.</p>
 
-    <section aria-labelledby="alerts-h">
-      <h2 id="alerts-h">Description prompts</h2>
-      <button id="notify">Turn on notifications</button>
-      <div id="alerts"><p class="muted" id="no-alerts">Nothing to describe right now.</p></div>
+    <section aria-labelledby="before-h">
+      <h2 id="before-h">Before your talk</h2>
+      <div class="row">
+        <button id="upload" type="button" class="primary">Upload slides (PDF)</button>
+        <input id="deck" type="file" accept="application/pdf" class="sr-only" aria-label="Slide deck PDF">
+        <button id="notify" type="button" class="primary">Turn on notifications</button>
+        <p id="notify-status" class="status" role="status" hidden>Notifications on</p>
+      </div>
+      <p id="deck-status">Optional: upload your deck so attendees can review it before the talk.</p>
     </section>
 
-    <section aria-labelledby="slides-h">
-      <h2 id="slides-h">Your slides</h2>
-      <p id="deck-status" class="muted">Optional: upload your deck as a PDF so attendees can review it.</p>
-      <label>Slide deck (PDF) <input id="deck" type="file" accept="application/pdf"></label>
-      <h3>Current slide</h3>
-      <p id="current" class="status" role="status">Not set</p>
-      <div class="row">
-        <button id="prev" disabled>Previous slide</button>
-        <button id="next" disabled>Next slide</button>
-        <label>Go to <select id="jump" disabled></select></label>
-      </div>
-      <p class="muted">These buttons change the live slide that attendees are told about.</p>
+    <section aria-labelledby="alerts-h">
+      <h2 id="alerts-h">Description prompts</h2>
+      <div id="alerts"><p id="no-alerts">Nothing to describe right now.</p></div>
+    </section>
 
+    <section id="slides-section" aria-labelledby="slides-h" hidden>
+      <h2 id="slides-h">Your slides</h2>
+      <p class="status" role="status">Current slide: <span id="current">not set</span></p>
+      <div id="slide-controls" class="row">
+        <button id="prev">Previous slide</button>
+        <button id="next">Next slide</button>
+        <label class="inline">Go to <select id="jump"></select></label>
+      </div>
+      <p>These change the live slide that attendees are told about.</p>
+
+      <div id="preview-block" hidden>
       <h3>Slide preview</h3>
       <p id="preview-status" class="status" role="status" hidden></p>
       <div id="preview-controls" class="row" role="group" aria-label="Browse the preview. This does not change the live slide." hidden>
@@ -59,10 +63,11 @@
       </div>
       <iframe id="preview" class="preview" title="Preview of your slides" hidden></iframe>
       <p><a id="open-preview" href="#" target="_blank" rel="noopener" hidden>Open slides in a new tab</a></p>
+      </div>
     </section>
 
-    <section aria-labelledby="transcript-h">
-      <h2 id="transcript-h">What the tool heard</h2>
+    <section id="transcript-section" aria-labelledby="transcript-h" hidden>
+      <h2 id="transcript-h">Transcript</h2>
       <div id="transcript" class="transcript" role="region" aria-label="Transcript" tabindex="0"></div>
     </section>
   </main>
