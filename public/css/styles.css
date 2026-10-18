@@ -177,17 +177,19 @@ a { color: var(--accent); text-decoration: underline; text-underline-offset: 0.1
 code.room { font-size: 1.25rem; font-weight: 700; letter-spacing: 0.15em; padding: 0.1rem 0.6rem; border-radius: 0.5rem; background: var(--accent-soft); color: var(--accent-ink); }
 details.dev { border-style: dashed; }
 dialog {
+  --dialog-pad: 1.25rem;
   width: min(42rem, calc(100vw - 2rem));
   max-height: min(90vh, 48rem);
   overflow-y: auto;
-  padding: 1.25rem;
+  padding: var(--dialog-pad);
   border: 2px solid var(--border);
   border-radius: 1rem;
   background: var(--raised);
   color: var(--fg);
 }
 dialog::backdrop { background: rgb(0 0 0 / 65%); }
-.settings-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+.settings-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; position: sticky; top: calc(-1 * var(--dialog-pad)); z-index: 2; margin: calc(-1 * var(--dialog-pad)) calc(-1 * var(--dialog-pad)) 1rem; padding: var(--dialog-pad) var(--dialog-pad) 0.75rem; background: var(--raised); border-bottom: 2px solid var(--line); }
+.settings-heading button { flex: none; white-space: nowrap; overflow-wrap: normal; }
 .settings-heading h2 { margin-bottom: 0.25rem; }
 .settings-heading p { margin-top: 0; }
 .settings-group { min-width: 0; margin: 1rem 0; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; }
