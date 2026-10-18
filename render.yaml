@@ -1,0 +1,25 @@
+# Render blueprint: in Render choose New -> Blueprint, pick this repo, and these settings are applied.
+# Render asks for GEMINI_API_KEY at creation (it is never stored in the repo). Add the Zoom keys the same way later.
+services:
+  - type: web
+    name: zoominsight
+    runtime: node
+    plan: free # free sleeps after 15 min idle and has no persistent disk; "starter" keeps it awake and allows a disk
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: MOCK_GEMINI
+        value: "0"
+      - key: DEBUG_FRAMES
+        value: "0"
+      - key: GEMINI_API_KEY
+        sync: false # entered in Render's dashboard, never committed
+    # For saved decks to survive deploys (needs plan: starter or above), uncomment:
+    # disk:
+    #   name: decks
+    #   mountPath: /var/data
+    #   sizeGB: 1
+    # and add an env var DATA_DIR=/var/data
