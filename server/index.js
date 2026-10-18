@@ -93,7 +93,7 @@ app.post("/api/rooms/:id/frame", express.raw({ type: "image/jpeg", limit: "8mb" 
 });
 
 // With DEBUG_FRAMES=1 in .env, every frame is saved so slide detection can be checked by eye.
-const FRAME_DIR = join(tmpdir(), "zoominsight-frames");
+const FRAME_DIR = join(tmpdir(), "narraassist-frames");
 function saveFrame(room, jpeg, reason) {
   try {
     mkdirSync(FRAME_DIR, { recursive: true });
@@ -142,6 +142,6 @@ restoreSavedRooms();
 const server = createServer(app);
 attachSockets(server);
 server.listen(PORT, () => {
-  console.log(`\nZoomInSight running at http://localhost:${PORT}`);
+  console.log(`\nNarraAssist running at http://localhost:${PORT}`);
   console.log(`Gemini: ${gemini.status() === "mock" ? "mock data (set MOCK_GEMINI=0 and a key for real calls)" : "live"}`);
 });

@@ -45,7 +45,7 @@ You need Node.js 22 or newer and Google Chrome. The commands are the same on mac
 
 ```bash
 git clone <this repo>
-cd ZoomInSight
+cd NarraAssist
 npm install
 ```
 

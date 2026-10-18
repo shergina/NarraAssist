@@ -5,7 +5,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const SLIDES = [
   {
     number: 1,
-    title: "Welcome to ZoomInSight",
+    title: "Welcome to NarraAssist",
     text: "Following presentations without seeing the screen\nDubHacks 2026",
     visuals: "",
     overview: "Following presentations without seeing the screen. DubHacks 2026.",
