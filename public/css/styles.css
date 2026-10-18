@@ -126,7 +126,9 @@ header { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: baseli
 header > * { min-width: 0; overflow-wrap: anywhere; }
 header h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.01em; margin: 0; }
 .site-brand { display: inline-flex; align-items: center; gap: 0.6rem; color: inherit; text-decoration: none; }
-.site-brand img { display: block; width: 2rem; height: 2rem; object-fit: contain; }
+.site-brand img { display: block; width: 2.8rem; height: 2.8rem; object-fit: contain; }
+/* The header is always purple (black in high contrast), so draw the logo in solid white there. */
+header .site-brand img { filter: brightness(0) invert(1); }
 .site-brand h1 { margin: 0; }
 header > .muted { color: var(--hero-muted); }
 header code.room { padding: 0.1rem calc(0.6rem - 0.15em) 0.1rem 0.6rem; /* letter-spacing adds a gap after the last letter; trim it so the code sits centered */ border-radius: 0.5rem; background: var(--hero-chip); color: var(--hero-fg); }
@@ -148,6 +150,7 @@ section { background: var(--panel); border: 1px solid var(--line); border-radius
 h2 { overflow-wrap: anywhere; font-size: 1.5rem; font-weight: 700; margin: 0 0 0.75rem; padding-left: 0.75rem; border-left: 0.3rem solid var(--accent); }
 h3 { font-size: 1.2rem; font-weight: 700; margin: 0.75rem 0 0.25rem; }
 .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.preview { display: block; width: 100%; height: 30rem; max-height: 70vh; margin: 0.75rem 0; border: 2px solid var(--border); border-radius: 0.75rem; background: var(--raised); }
 .muted { color: var(--muted); }
 .pre { white-space: pre-line; }
 .status { font-weight: 600; }
@@ -198,6 +201,7 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
 #settings-description { margin: 0 0 0.75rem; }
 .settings-group { min-width: 0; margin: 1rem 0; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; }
 .settings-group legend { padding: 0 0.35rem; font-weight: 700; }
+.settings-group > label:not(.setting-toggle) { display: flex; margin: 0.6rem 0; }
 .setting-toggle { display: flex; flex-direction: row; align-items: center; gap: 0.75rem; min-height: 2.75rem; }
 .setting-toggle input { flex: 0 0 auto; width: 1.5rem; height: 1.5rem; margin: 0; }
 .settings-options { display: flex; flex-wrap: wrap; gap: 1rem; }
@@ -274,3 +278,6 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
 .crumb-chevron { width: 0.9em; height: 0.9em; opacity: 0.75; flex: none; }
 
 .tagline { max-width: none; font-size: 1.15rem; }
+
+/* The slide text list under the slide view. Closed by default, so the question box stays near the view. */
+#slide-text > summary { cursor: pointer; font-size: 1.2rem; font-weight: 700; margin: 0.75rem 0 0.25rem; padding: 0.25rem 0; }

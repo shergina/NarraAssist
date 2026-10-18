@@ -3,8 +3,41 @@ import { settings } from "./settings.js";
 
 const pendingAnnouncements = new WeakMap();
 
+// A screen reader follows the focused window. The floating player is its own window, so announcements made
+// in the main document while the listener is in the player can be missed or read late. Documents registered
+// here get their own regions, and announce() uses the one whose window has focus.
+const extraDocuments = new Set();
+
+export function addAnnounceDocument(doc) {
+  extraDocuments.add(doc);
+  ensureRegions(doc);
+}
+
+export function removeAnnounceDocument(doc) {
+  extraDocuments.delete(doc);
+}
+
+function ensureRegions(doc) {
+  for (const [id, role, live] of [["sr-status", "status", "polite"], ["sr-alert", "alert", "assertive"]]) {
+    if (doc.getElementById(id)) continue;
+    const region = doc.createElement("div");
+    region.id = id;
+    region.className = "sr-only";
+    region.setAttribute("role", role);
+    region.setAttribute("aria-live", live);
+    doc.body.append(region);
+  }
+}
+
+function announceDocument() {
+  for (const doc of extraDocuments) {
+    if (doc.defaultView && !doc.defaultView.closed && doc.hasFocus()) return doc;
+  }
+  return document;
+}
+
 export function announce(text, { assertive = false } = {}) {
-  const region = document.getElementById(assertive ? "sr-alert" : "sr-status");
+  const region = announceDocument().getElementById(assertive ? "sr-alert" : "sr-status");
   if (!region) return;
   clearTimeout(pendingAnnouncements.get(region));
   region.textContent = "";

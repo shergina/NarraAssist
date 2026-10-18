@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Listener · NarraAssist</title>
-  <link rel="icon" type="image/png" href="/NarraAssist_Logo-removebg.png">
+  <link rel="icon" type="image/svg+xml" href="/NarraAssistLogoWhite.svg">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -13,7 +13,7 @@
   <div id="sr-alert" class="sr-only" role="alert" aria-live="assertive"></div>
 
   <header>
-    <p class="crumb"><a class="site-brand" href="/" aria-label="NarraAssist home"><img src="/NarraAssist_Logo-removebg.png" alt=""><span>NarraAssist</span></a> <svg class="crumb-chevron" aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" focusable="false"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+    <p class="crumb"><a class="site-brand" href="/" aria-label="NarraAssist home"><img src="/NarraAssistLogo.svg" alt=""><span>NarraAssist</span></a> <svg class="crumb-chevron" aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" focusable="false"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
     <h1>Listener</h1>
     <span>Room <code class="room" id="room"></code></span>
     <span id="conn" class="muted" aria-live="off">Connecting…</span>
@@ -72,8 +72,19 @@
       <p id="deck-status" class="muted" aria-live="off"></p>
       <div id="deck-content" hidden>
       <div id="summary"></div>
-      <h3>All slides</h3>
-      <div id="slides"></div>
+      <h3 id="deck-view-h">Slide view</h3>
+      <p id="deck-view-status" aria-live="off"></p>
+      <div class="row" role="group" aria-label="Browse the slide view. This does not change the live slide.">
+        <button id="dv-prev" type="button">Previous slide</button>
+        <button id="dv-next" type="button">Next slide</button>
+        <button id="dv-live" type="button" hidden>Back to live slide</button>
+        <a id="dv-open" class="button" href="#" target="_blank" rel="noopener">Open slides in a new tab</a>
+      </div>
+      <iframe id="deck-preview" class="preview" title="The slides, one page at a time"></iframe>
+      <details id="slide-text">
+        <summary id="slide-text-summary">Slide text</summary>
+        <div id="slides"></div>
+      </details>
 
       <h3 id="chat-h">Ask about the slides</h3>
       <p id="chat-note" class="muted">Answers come only from the uploaded slides. If something isn't in them, it will say so.</p>

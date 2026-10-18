@@ -1,5 +1,4 @@
 // Owner: Person 1. Turns the listener's streamed 16 kHz mono 16-bit PCM into transcript lines.
-// TODO(Person 1): skip silent chunks.
 import * as gemini from "./gemini.js";
 import { addTranscript } from "./rooms.js";
 import { maybeCheckCues } from "./cues.js";
@@ -18,6 +17,8 @@ export function pushAudio(room, data) {
   const pcm = Buffer.concat(state.chunks);
   state.chunks = [];
   state.bytes = 0;
+  // Silence costs a Gemini call and tempts the model to invent words, so skip it.
+  if (isSilent(pcm)) return;
   state.queue = state.queue
     .then(async () => {
       const text = await gemini.transcribe(toWav(pcm));
@@ -26,6 +27,15 @@ export function pushAudio(room, data) {
       await maybeCheckCues(room);
     })
     .catch((err) => console.warn("[transcribe]", err.message));
+}
+
+// Quiet speech sits around -40 dBFS (RMS about 330 of 32768); room noise and a muted mic sit well below that.
+const SILENCE_RMS = 200;
+function isSilent(pcm) {
+  let sum = 0;
+  const samples = Math.floor(pcm.length / 2);
+  for (let i = 0; i < samples; i++) sum += pcm.readInt16LE(i * 2) ** 2;
+  return Math.sqrt(sum / Math.max(samples, 1)) < SILENCE_RMS;
 }
 
 function toWav(pcm) {

@@ -1,7 +1,7 @@
 // Owner: Person 1. WebSocket at /ws?room=CODE&role=listener|presenter. Messages: docs/ARCHITECTURE.md.
 import { WebSocketServer } from "ws";
 import { randomUUID } from "node:crypto";
-import { findRoom, publicState, broadcast, setCurrentSlide, slideByNumber } from "./rooms.js";
+import { findRoom, publicState, setCurrentSlide, slideByNumber, addPending, respondTo } from "./rooms.js";
 import { pushAudio } from "./transcriber.js";
 
 export function attachSockets(server) {
@@ -34,19 +34,11 @@ export function attachSockets(server) {
 function handle(room, client, msg) {
   if (msg.type === "request-description" && client.role === "listener") {
     const request = { id: randomUUID(), kind: "request", note: String(msg.note || "").slice(0, 300), slide: room.current?.number ?? null, at: Date.now() };
-    room.pending.set(request.id, request);
-    broadcast(room, { type: "request", request }, { role: "presenter" });
+    addPending(room, request);
     const hasPresenter = [...room.clients].some((c) => c.role === "presenter");
     client.ws.send(JSON.stringify({ type: "request-sent", hasPresenter }));
   } else if (msg.type === "respond" && client.role === "presenter") {
-    const item = room.pending.get(msg.id);
-    if (!item) return;
-    room.pending.delete(msg.id);
-    const action = msg.action === "accept" ? "accept" : "dismiss";
-    broadcast(room, { type: "resolved", id: item.id }, { role: "presenter" });
-    if (action === "accept" || item.kind === "request") {
-      broadcast(room, { type: "presenter-response", kind: item.kind, action, slide: item.slide }, { role: "listener" });
-    }
+    respondTo(room, msg.id, msg.action);
   } else if (msg.type === "set-slide" && client.role === "presenter") {
     const slide = slideByNumber(room, Number(msg.number));
     if (slide) setCurrentSlide(room, slide, "presenter");

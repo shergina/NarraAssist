@@ -49,12 +49,23 @@ Rooms are in memory, and each uploaded deck (the PDF plus its descriptions) is a
 | `POST /api/rooms` | | `201 { id }` |
 | `GET /api/rooms/:id` | | room state: `{ id, deck, summary, slides, current, transcript }` |
 | `POST /api/rooms/:id/deck` | PDF bytes, `Content-Type: application/pdf`, `X-File-Name` | `202 { deck }`, then a `deck` socket message when done |
-| `GET /api/rooms/:id/deck.pdf` | | the PDF |
+| `GET /api/rooms/:id/deck.pdf` | | the PDF. The listener's slide view embeds it one page at a time (`#page=N`) and links to it |
 | `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, reason, slide }`. `reason` is `"described"`, `"nothing-shared"` (no content on screen; once nothing has been shared for 8 seconds the current slide is cleared and a `slide` message with `slide: null` is broadcast) or `"no-match"` (content on screen but not a page of the deck; the screenshot is described instead, so `slide` is still filled). Takes about 2.5 s. Described at most once every 3 s per room; the newest frame wins |
 | `POST /api/rooms/:id/ask` | `{ question, history?: [{ question, answer }] }` (the page sends its last 3 pairs for follow-ups) | `{ found, answer, slides: [numbers] }`. Answers come from the uploaded deck only; 409 if no deck. When `found` is false, `answer` is "That isn't covered in the slides." The server rejects an answer that cites no real slide. Meant for before the meeting; the page decides when to show the box |
 
 | `POST /api/zoom/signature` | `{ meetingNumber }` | `{ signature, sdkKey }`. Person 4. Answers 501 until built |
+| `GET /api/push/key` | | `{ publicKey }`: the VAPID key the presenter page passes to `pushManager.subscribe()` |
+| `POST /api/rooms/:id/push` | `{ endpoint }` | `201`. Wakes this browser's service worker for every new nudge or request in the room. One browser has one endpoint; the last room wins. Only real push services are accepted (FCM, Mozilla, Apple, Windows) |
+| `POST /api/push/unsubscribe` | `{ endpoint }` | `{ ok }` |
+| `POST /api/push/pending` | `{ endpoint }` | `{ room, items }`: the room's unanswered nudges and requests, newest first. Called by `public/sw.js` on each push; 404 if the endpoint isn't subscribed |
+| `POST /api/rooms/:id/respond` | `{ id, action: "accept" \| "dismiss" }` | `{ ok }`. Same as the `respond` socket message; used by notification buttons |
 | `POST /api/rooms/:id/dev/transcript` | `{ text }` | Development only. Adds a transcript line and runs the cue check immediately |
+
+## Presenter notifications
+
+Every nudge and listener request goes through `addPending()` in `server/rooms.js`, which sends it to open presenter pages over the socket and pushes to subscribed phones (`server/push.js`). Pushes carry no payload, so no encryption library is needed: the push only wakes `public/sw.js`, which fetches `/api/push/pending` and shows one notification per item, tagged with the item's id, with "I'll do it" and "Not needed" buttons. If a presenter page is visible, the worker shows nothing, because the card already did. When an item is resolved, the presenter page closes its notification. Push needs HTTPS or localhost, so a phone on the LAN needs a tunnel. The VAPID key and subscriptions are kept in `DATA_DIR/push/`.
+
+Pointing phrases ("as you can see", "look at this", "the red line", "over here", "on the left of the slide") are matched locally in `server/cues.js` on each new transcript line while something is shared, and nudge at once. The Gemini cue check still runs every 15 seconds for the subtler cases. Both share the 45-second cooldown.
 
 Errors are `{ error: "message" }` with a 4xx or 5xx status. 501 means a stub that isn't built yet.
 

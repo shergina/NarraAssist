@@ -12,6 +12,7 @@ const walk = (dir) => {
   }
 };
 ["server", "public/js", "scripts"].forEach(walk);
+files.push(join("public", "sw.js"));
 
 let failed = 0;
 for (const file of files) {

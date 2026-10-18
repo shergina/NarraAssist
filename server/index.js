@@ -7,11 +7,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as gemini from "./gemini.js";
 import { HttpError } from "./errors.js";
-import { createRoom, getRoom, publicState, broadcast, setCurrentSlide, slideByNumber, addTranscript, restoreSavedRooms } from "./rooms.js";
+import { createRoom, getRoom, findRoom, publicState, broadcast, setCurrentSlide, slideByNumber, addTranscript, restoreSavedRooms, respondTo } from "./rooms.js";
 import { saveDeck } from "./store.js";
 import { attachSockets } from "./sockets.js";
 import { maybeCheckCues } from "./cues.js";
 import { zoomRouter } from "./zoom.js";
+import * as push from "./push.js";
 
 const PORT = Number(process.env.PORT || 3000);
 const app = express();
@@ -122,6 +123,34 @@ app.post("/api/rooms/:id/ask", async (req, res) => {
   const found = Boolean(out.found && out.answer?.trim() && cited.length);
   if (out.found && !found) console.log(`[ask] ${room.id} answer rejected: no valid slide cited for "${question.slice(0, 60)}"`);
   res.json({ found, answer: found ? out.answer.trim() : NOT_IN_SLIDES, slides: found ? cited : [] });
+});
+
+// Push notifications for presenter phones. The service worker (public/sw.js) holds the subscription; a push
+// carries no data, so the worker asks /api/push/pending what to show and answers through /respond.
+app.get("/api/push/key", (req, res) => res.json({ publicKey: push.publicKey }));
+
+app.post("/api/rooms/:id/push", (req, res) => {
+  const room = getRoom(req.params.id);
+  const endpoint = String(req.body?.endpoint || "");
+  if (!push.isPushEndpoint(endpoint)) throw new HttpError(400, "That isn't a browser push subscription.");
+  push.subscribe(room, endpoint);
+  res.status(201).json({ ok: true });
+});
+
+app.post("/api/push/unsubscribe", (req, res) => {
+  push.unsubscribe(String(req.body?.endpoint || ""));
+  res.json({ ok: true });
+});
+
+app.post("/api/push/pending", (req, res) => {
+  const room = findRoom(push.roomIdFor(String(req.body?.endpoint || "")));
+  if (!room) throw new HttpError(404, "This browser isn't subscribed to a room.");
+  res.json({ room: room.id, items: [...room.pending.values()].sort((a, b) => b.at - a.at) });
+});
+
+app.post("/api/rooms/:id/respond", (req, res) => {
+  const room = getRoom(req.params.id);
+  res.json({ ok: respondTo(room, String(req.body?.id || ""), req.body?.action) });
 });
 
 // Development only: add a transcript line and run the cue check now, to test nudges without audio.
