@@ -278,3 +278,6 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
 .crumb-chevron { width: 0.9em; height: 0.9em; opacity: 0.75; flex: none; }
 
 .tagline { max-width: none; font-size: 1.15rem; }
+
+/* The slide text list under the slide view. Closed by default, so the question box stays near the view. */
+#slide-text > summary { cursor: pointer; font-size: 1.2rem; font-weight: 700; margin: 0.75rem 0 0.25rem; padding: 0.25rem 0; }

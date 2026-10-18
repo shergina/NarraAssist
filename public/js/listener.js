@@ -741,6 +741,10 @@ function updateDeckView() {
   else showDeckPage(state.deckPage);
 }
 
+// The slide text list starts closed so the question box stays near the slide view. The choice is remembered.
+$("#slide-text").open = settings.get("deck.textOpen");
+$("#slide-text").addEventListener("toggle", () => settings.set("deck.textOpen", $("#slide-text").open));
+
 $("#dv-prev").addEventListener("click", () => browseDeck((state.deckPage || 1) - 1));
 $("#dv-next").addEventListener("click", () => browseDeck((state.deckPage || 0) + 1));
 $("#dv-live").addEventListener("click", () => {
@@ -769,6 +773,7 @@ function renderDeck() {
   if (!d || d.status === "none") $("#deck-status").textContent = "The presenter hasn't uploaded slides yet. The slides and questions appear here when they do.";
   $("#summary").replaceChildren(...(state.summary ? [h("h3", {}, "Summary"), h("p", {}, state.summary)] : []));
   $("#slides").replaceChildren(...state.slides.map((s) => slideBlock(s, "h4")));
+  $("#slide-text-summary").textContent = `Slide text, ${state.slides.length} ${state.slides.length === 1 ? "slide" : "slides"}`;
   updateDeckView();
   renderChatState();
 }
