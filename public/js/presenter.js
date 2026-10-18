@@ -143,7 +143,7 @@ $("#deck").addEventListener("change", async (e) => {
 function renderDeck(deck = { status: "none" }) {
   $("#deck-status").textContent = {
     none: "Optional: upload your deck so attendees can review it before the talk.",
-    processing: `Preparing ${deck.fileName}…`,
+    processing: `Preparing ${deck.fileName}… This usually takes about a minute.`,
     ready: `${deck.fileName}: ${deck.slideCount} slides ready for attendees.`,
     error: `Couldn't read the slides: ${deck.error}`,
   }[deck.status] ?? "";
@@ -207,6 +207,9 @@ function browse(delta) {
 }
 
 function renderCurrent() {
+  // "Back to live slide" only means something once a live slide exists.
+  const pvLive = $("#pv-live");
+  if (pvLive) pvLive.hidden = !state.current;
   $("#current").textContent = state.current ? slideLabel(state.current) : "not set";
   if (state.current?.number) $("#jump").value = state.current.number;
   updatePreview();
