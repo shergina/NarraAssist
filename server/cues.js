@@ -36,19 +36,26 @@ export async function maybeCheckCues(room, { force = false } = {}) {
   const now = Date.now();
   if (!force && now - room.cue.lastNudgeAt < NUDGE_COOLDOWN_MS) return;
 
-  const phrase = room.current ? pointingPhrase(room.transcript.at(-1)?.text) : null;
+  // force (the dev transcript route) skips the "something is shared" rule, so nudges can be tested with no screen.
+  const phrase = room.current || force ? pointingPhrase(room.transcript.at(-1)?.text) : null;
   if (phrase) {
     return nudge(room, {
       cue: "visuals",
       reason: `You said "${phrase}", but some attendees can't see your screen.`,
-      suggestion: room.current.title ? `On this slide, "${room.current.title}", what you're looking at is…` : "What's on screen right now is…",
+      suggestion: room.current?.title ? `On this slide, "${room.current.title}", what you're looking at is…` : "What's on screen right now is…",
     });
   }
 
   if (!force && now - room.cue.lastCheckAt < CHECK_EVERY_MS) return;
   room.cue.lastCheckAt = now;
   const transcript = room.transcript.filter((t) => t.at > now - 60_000).map((t) => t.text).join(" ");
-  const result = await gemini.detectCue({ slide: room.current, transcript, dismissed: [] });
+  let result;
+  try {
+    result = await gemini.detectCue({ slide: room.current, transcript, dismissed: [] });
+  } catch (err) {
+    if (err.status === 501) return; // the live cue check isn't built yet; the phrase check above still nudges
+    throw err;
+  }
   if (result.shouldNudge) nudge(room, result);
 }
 
