@@ -2,7 +2,7 @@
 # Render asks for GEMINI_API_KEY at creation (it is never stored in the repo). Add the Zoom keys the same way later.
 services:
   - type: web
-    name: zoominsight
+    name: narraassist
     runtime: node
     plan: free # free sleeps after 15 min idle and has no persistent disk; "starter" keeps it awake and allows a disk
     buildCommand: npm install
