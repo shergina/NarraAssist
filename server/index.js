@@ -66,12 +66,14 @@ app.post("/api/rooms/:id/frame", express.raw({ type: "image/jpeg", limit: "8mb" 
   let reason = "described";
   if (room.slides.length) {
     const match = await gemini.matchSlide(req.body, room.slides);
-    if (match.slideNumber > 0 && match.confidence >= 0.5) slide = slideByNumber(room, match.slideNumber);
-    else reason = "no-match";
-  } else {
+    if (match.slideNumber > 0 && match.confidence >= 0.6) slide = slideByNumber(room, match.slideNumber);
+  }
+  if (!slide) {
+    // No deck, or the screen isn't one of its pages (edited slide, a demo, a website): describe the screenshot itself.
     const d = await gemini.describeFrame(req.body);
     if (d.isSharedContent) slide = { number: d.slideNumber || null, title: d.title, text: d.text, visuals: d.visuals, overview: d.overview, summary: d.summary };
     else reason = "nothing-shared";
+    if (slide && room.slides.length) reason = "no-match";
   }
   // Slide detection fires a couple of empty frames while a slide change settles, so an empty frame means
   // nothing on its own. Clear the slide only once nothing has been shared for a while.
