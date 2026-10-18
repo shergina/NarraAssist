@@ -8,6 +8,7 @@ const DEFAULTS = {
   "voice.rate": 1.2,
   "catchup.maxRate": 2,
   "speech.mode": "voice", // "voice" | "screen-reader"
+  "video.float": true,
 };
 
 export const settings = {

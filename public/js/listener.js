@@ -19,6 +19,10 @@ const state = {
   audio: null,
   capture: null,
   stopSlides: null,
+  pipWindow: null,
+  pipControls: null,
+  pipRequestId: 0,
+  connecting: false,
   helper: null,
   describing: false,
   manualDescriptionEnd: false,
@@ -58,6 +62,7 @@ function onMessage(msg) {
       $("#transcript").replaceChildren(...msg.state.transcript.map((t) => h("p", {}, t.text)));
       renderDeck();
       renderSlide();
+      renderFloatingVideo();
       break;
     case "deck":
       state.deck = msg.deck;
@@ -69,6 +74,7 @@ function onMessage(msg) {
     case "slide":
       state.slide = msg.slide;
       renderSlide();
+      renderFloatingVideo();
       // The knock for screen changes already played locally. Presenter-driven changes knock here.
       if (msg.source === "presenter") {
         earcons.slideChanged();
@@ -157,31 +163,259 @@ function wireAudio(audio) {
   renderMode();
 }
 
+function renderFloatingVideo() {
+  const button = $("#floating-video");
+  const supported = Boolean(window.documentPictureInPicture?.requestWindow);
+  const active = Boolean(state.pipWindow && !state.pipWindow.closed);
+  button.disabled = !supported || (!state.capture && !active);
+  button.setAttribute("aria-pressed", String(active));
+  button.textContent = active ? "Hide floating Zoom video" : "Show floating Zoom video";
+  $("#floating-video-status").textContent = !supported
+    ? "Interactive floating player is not supported by this browser."
+    : active
+      ? "Floating meeting player is open."
+      : state.capture
+        ? "Floating meeting player is closed."
+        : "Connect to a Zoom tab to use the floating meeting player.";
+  if (state.pipControls) {
+    state.pipControls.describe.disabled = !state.slide;
+    state.pipControls.describe.textContent = state.describing ? "Back to presenter" : "Describe slide";
+    state.pipControls.status.textContent = $("#mode").textContent;
+  }
+}
+
+function closeFloatingVideo() {
+  state.pipRequestId += 1;
+  const pipWindow = state.pipWindow;
+  state.pipWindow = null;
+  state.pipControls = null;
+  if (state.capture?.video) $("#capture-preview").replaceChildren(state.capture.video);
+  pipWindow?.close();
+  renderFloatingVideo();
+}
+
+function buildFloatingPlayer(pipWindow) {
+  const pipDocument = pipWindow.document;
+  pipDocument.head.replaceChildren();
+  for (const stylesheet of document.head.querySelectorAll('link[rel="stylesheet"], style')) {
+    pipDocument.head.append(stylesheet.cloneNode(true));
+  }
+  const style = pipDocument.createElement("style");
+  style.textContent = `
+    body { min-width: 18rem; margin: 0; padding: .75rem; }
+    .pip-player { display: grid; gap: .65rem; }
+    .pip-player[hidden], .pip-settings[hidden] { display: none; }
+    .pip-player h1 { margin: 0; font-size: 1.1rem; }
+    .pip-video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: .5rem; }
+    .pip-video video { width: 100%; height: 100%; object-fit: contain; }
+    .pip-controls { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .pip-controls button { min-height: 2.75rem; }
+    .pip-status { margin: 0; font-size: .95rem; }
+    .pip-settings { max-height: 90vh; overflow: auto; margin: 0; }
+    .pip-settings fieldset { margin: .75rem 0; padding: .5rem; }
+    .pip-settings label { display: flex; flex-direction: row; align-items: center; gap: .5rem; }
+    .pip-settings input[type="checkbox"] { width: 1.25rem; height: 1.25rem; }
+    .pip-settings select { width: 100%; }
+    .pip-settings h2 { font-size: 1rem; }
+  `;
+  pipDocument.head.append(style);
+
+  const player = pipDocument.createElement("main");
+  player.className = "pip-player";
+  const heading = pipDocument.createElement("h1");
+  heading.textContent = "ZoomInSight meeting";
+  const videoContainer = pipDocument.createElement("div");
+  videoContainer.className = "pip-video";
+  videoContainer.setAttribute("aria-label", "Shared Zoom tab video");
+  const status = pipDocument.createElement("p");
+  status.className = "pip-status";
+  status.setAttribute("role", "status");
+  const controls = pipDocument.createElement("div");
+  controls.className = "pip-controls";
+  const describe = pipDocument.createElement("button");
+  describe.type = "button";
+  describe.textContent = "Describe slide";
+  describe.addEventListener("click", toggleDescribe);
+  const settingsButton = pipDocument.createElement("button");
+  settingsButton.type = "button";
+  settingsButton.textContent = "Listener settings";
+  const settingsPanel = pipDocument.createElement("section");
+  settingsPanel.className = "pip-settings";
+  settingsPanel.hidden = true;
+  const showSettings = () => {
+    const heading = pipDocument.createElement("h2");
+    heading.textContent = "Listener settings";
+    heading.tabIndex = -1;
+    const back = pipDocument.createElement("button");
+    back.type = "button";
+    back.textContent = "Back to meeting controls";
+    back.addEventListener("click", () => {
+      settingsPanel.hidden = true;
+      player.hidden = false;
+      settingsButton.focus();
+    });
+    settingsPanel.replaceChildren(heading, back);
+
+    const toggles = [
+      ["sound.slideChanged", "Sound when the slide changes"],
+      ["announce.slideTitle", "Announce slide titles"],
+      ["sound.presenterQuiet", "Sound when the presenter stops talking"],
+      ["sound.caughtUp", "Sound when caught up to live"],
+      ["announce.speaker", "Announce who is speaking"],
+      ["video.float", "Automatically open the floating player when connecting"],
+    ];
+    const toggleGroup = pipDocument.createElement("fieldset");
+    const toggleLegend = pipDocument.createElement("legend");
+    toggleLegend.textContent = "Alerts";
+    toggleGroup.append(toggleLegend);
+    for (const [key, labelText] of toggles) {
+      const label = pipDocument.createElement("label");
+      const input = pipDocument.createElement("input");
+      input.type = "checkbox";
+      input.checked = settings.get(key);
+      input.addEventListener("change", () => settings.set(key, input.checked));
+      label.append(input, pipDocument.createTextNode(labelText));
+      toggleGroup.append(label);
+    }
+    settingsPanel.append(toggleGroup);
+
+    const selectGroup = pipDocument.createElement("fieldset");
+    const selectLegend = pipDocument.createElement("legend");
+    selectLegend.textContent = "Speech and catch-up";
+    selectGroup.append(selectLegend);
+    const selects = [
+      ["speech.mode", "Read descriptions with", [["voice", "Built-in voice"], ["screen-reader", "My screen reader"]]],
+      ["voice.rate", "Voice speed", [[1, "1x"], [1.2, "1.2x"], [1.5, "1.5x"], [2, "2x"]]],
+      ["catchup.maxRate", "Fastest catch-up speed", [[1.5, "1.5x"], [2, "2x"], [2.5, "2.5x"]]],
+    ];
+    for (const [key, labelText, options] of selects) {
+      const label = pipDocument.createElement("label");
+      const text = pipDocument.createElement("span");
+      text.textContent = labelText;
+      const select = pipDocument.createElement("select");
+      for (const [value, optionText] of options) {
+        const option = pipDocument.createElement("option");
+        option.value = value;
+        option.textContent = optionText;
+        option.selected = String(settings.get(key)) === String(value);
+        select.append(option);
+      }
+      select.addEventListener("change", () => {
+        const value = key === "speech.mode" ? select.value : Number(select.value);
+        settings.set(key, value);
+        if (key === "catchup.maxRate") state.audio?.setMaxRate(value);
+      });
+      label.append(text, select);
+      selectGroup.append(label);
+    }
+    settingsPanel.append(selectGroup);
+    player.hidden = true;
+    settingsPanel.hidden = false;
+    pipDocument.body.replaceChildren(player, settingsPanel);
+    heading.focus();
+  };
+  settingsButton.addEventListener("click", showSettings);
+  controls.append(describe, settingsButton);
+  player.append(heading, videoContainer, status, controls);
+  pipDocument.body.replaceChildren(player, settingsPanel);
+  pipDocument.addEventListener("keydown", (event) => {
+    if (!event.altKey || !event.shiftKey) return;
+    if (pipDocument.activeElement?.matches("input, textarea, select, [contenteditable='true']")) return;
+    const shortcut = SHORTCUTS.find(([code]) => code === event.code);
+    if (!shortcut) return;
+    event.preventDefault();
+    shortcut[2]();
+  });
+
+  state.pipWindow = pipWindow;
+  state.pipControls = { videoContainer, status, describe, showSettings };
+  if (state.capture?.video) videoContainer.append(state.capture.video);
+  pipWindow.addEventListener("pagehide", () => {
+    if (state.pipWindow !== pipWindow) return;
+    state.pipWindow = null;
+    state.pipControls = null;
+    if (state.capture?.video) $("#capture-preview").replaceChildren(state.capture.video);
+    renderFloatingVideo();
+  });
+  renderFloatingVideo();
+}
+
+async function openFloatingVideo() {
+  const requestWindow = window.documentPictureInPicture?.requestWindow;
+  if (!requestWindow) {
+    renderFloatingVideo();
+    say("Interactive floating player is not supported in this browser.", { assertive: true });
+    return;
+  }
+  if (state.pipWindow) return;
+  const requestId = ++state.pipRequestId;
+  try {
+    const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 380, height: 430 });
+    if (requestId !== state.pipRequestId) {
+      pipWindow.close();
+      return;
+    }
+    buildFloatingPlayer(pipWindow);
+  } catch (err) {
+    say(`Couldn't open the floating player: ${err.message}`, { assertive: true });
+  }
+}
+
+function toggleFloatingVideo() {
+  if (!state.capture && !state.pipWindow) {
+    say("Connect to a Zoom tab before opening the floating player.");
+    return;
+  }
+  if (state.pipWindow) closeFloatingVideo();
+  else openFloatingVideo();
+}
+
 $("#connect").addEventListener("click", async () => {
   if (state.capture) return disconnect();
+  if (state.connecting) return;
+  state.connecting = true;
+  $("#connect").disabled = true;
+  $("#connect").textContent = "Connecting…";
+  const floatingPlayerRequest = settings.get("video.float") ? openFloatingVideo() : null;
   const ctx = new AudioContext(); // created during the click so Chrome allows sound
   try {
     state.capture = await startCapture();
   } catch {
+    state.connecting = false;
     ctx.close();
+    closeFloatingVideo();
+    $("#connect").disabled = false;
+    $("#connect").textContent = "Connect to Zoom tab";
     return say("Sharing was cancelled. Press Connect to try again.", { assertive: true });
   }
+  state.connecting = false;
+  $("#connect").disabled = false;
+  state.capture.video.setAttribute("aria-hidden", "true");
+  state.capture.video.tabIndex = -1;
+  if (state.pipControls) state.pipControls.videoContainer.append(state.capture.video);
+  else $("#capture-preview").replaceChildren(state.capture.video);
+  renderFloatingVideo();
+  say("Connected to the meeting.");
+  await floatingPlayerRequest;
   const audio = new MeetingAudio(ctx, state.capture.stream, { maxRate: settings.get("catchup.maxRate") });
   wireAudio(audio);
   await audio.streamPcm((chunk) => socket.sendBinary(chunk));
   state.stopSlides = watchSlides(state.capture.video, { onChange: onLocalSlideChange });
   state.capture.stream.getVideoTracks()[0].addEventListener("ended", disconnect);
   $("#connect").textContent = "Disconnect";
-  say("Connected to the meeting.");
 });
 
-function disconnect() {
+async function disconnect() {
+  if (!state.capture) return;
   state.stopSlides?.();
   state.capture?.stream.getTracks().forEach((t) => t.stop());
   state.audio?.stop();
+  closeFloatingVideo();
+  $("#capture-preview").replaceChildren();
   Object.assign(state, { capture: null, audio: null, stopSlides: null });
   $("#connect").textContent = "Connect to Zoom tab";
   $("#mode").textContent = "Not connected to Zoom yet.";
+  renderFloatingVideo();
   say("Disconnected from the meeting.");
 }
 
@@ -248,13 +482,15 @@ function renderMode() {
   $("#screen-reader-help").hidden = !state.manualDescriptionEnd;
   $("#describe").textContent = state.describing ? "Back to presenter" : "Describe slide";
   $("#live").disabled = !audio || audio.mode === "live";
-  if (!audio) return;
-  const behind = Math.round(audio.secondsBehind);
-  $("#mode").textContent = {
-    live: "Live: you are hearing the presenter.",
-    held: `Paused for the description. ${behind} seconds behind.`,
-    catchup: `Catching up. ${behind} seconds behind.`,
-  }[audio.mode];
+  if (audio) {
+    const behind = Math.round(audio.secondsBehind);
+    $("#mode").textContent = {
+      live: "Live: you are hearing the presenter.",
+      held: `Paused for the description. ${behind} seconds behind.`,
+      catchup: `Catching up. ${behind} seconds behind.`,
+    }[audio.mode];
+  }
+  renderFloatingVideo();
 }
 setInterval(() => state.audio && state.audio.mode !== "live" && renderMode(), 1000);
 
@@ -279,6 +515,7 @@ const SHORTCUTS = [
   }],
   ["KeyS", "Say the current slide", () => say(slideLabel(state.slide))],
   ["KeyQ", "Ask a question about the slides", () => $("#question").focus()],
+  ["KeyV", "Show or hide the floating Zoom video", toggleFloatingVideo],
   ["KeyH", "Hear all shortcuts", () => say(SHORTCUTS.map(([code, label]) => `Alt Shift ${code.slice(3)}: ${label}.`).join(" "))],
 ];
 
@@ -347,6 +584,19 @@ function renderSettings() {
         select("speech.mode", "Read descriptions with", [["voice", "Built-in voice"], ["screen-reader", "My screen reader"]]),
         select("voice.rate", "Voice speed", [[1, "1x"], [1.2, "1.2x"], [1.5, "1.5x"], [2, "2x"]]),
         select("catchup.maxRate", "Fastest catch-up speed", [[1.5, "1.5x"], [2, "2x"], [2.5, "2.5x"]]))),
+    h("fieldset", { class: "settings-group" },
+      h("legend", {}, "Picture-in-picture"),
+      h("label", { class: "setting-toggle" },
+        h("input", {
+          type: "checkbox",
+          checked: settings.get("video.float"),
+          onchange: (e) => {
+            settings.set("video.float", e.target.checked);
+            if (e.target.checked && state.capture && !state.pipWindow) openFloatingVideo();
+            else if (!e.target.checked && state.pipWindow) closeFloatingVideo();
+          },
+        }),
+        h("span", {}, "Open the interactive floating player after connecting"))),
   );
 }
 renderSettings();
@@ -354,6 +604,8 @@ renderSettings();
 const settingsDialog = $("#settings-dialog");
 $("#open-settings").addEventListener("click", () => settingsDialog.showModal());
 $("#close-settings").addEventListener("click", () => settingsDialog.close());
+$("#floating-video").addEventListener("click", toggleFloatingVideo);
+renderFloatingVideo();
 
 // ---------- slides and questions ----------
 
