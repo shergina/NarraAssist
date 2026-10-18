@@ -88,8 +88,8 @@ Draft shortcuts for the listener page:
 
 | Action | Shortcut |
 |---|---|
-| Describe the slide, or go back to the presenter | Alt+Shift+D |
-| Skip straight to live | Alt+Shift+L |
+| Describe the slide, or stop the description and catch up on what you missed | Alt+Shift+D |
+| Jump to live, skipping what you missed | Alt+Shift+L |
 | Ask the presenter to describe something | Alt+Shift+R |
 | Repeat the last alert | Alt+Shift+A |
 | Say who is speaking | Alt+Shift+W |
@@ -97,7 +97,7 @@ Draft shortcuts for the listener page:
 | Read the full slide text, even when summaries are on | Alt+Shift+F |
 | Ask a question about the slides | Alt+Shift+Q |
 | Mute or unmute my microphone | Alt+Shift+M |
-| Show or hide the floating Zoom video | Alt+Shift+V |
+| Open or close the floating player | Alt+Shift+V |
 | Hear all shortcuts | Alt+Shift+H |
 
 On a Mac, Alt is the Option key.
