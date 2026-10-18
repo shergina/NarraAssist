@@ -249,7 +249,7 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
 /* Setup as numbered steps, and forms whose input and button line up. */
 .steps { margin: 0.75rem 0 0; padding-left: 1.5rem; display: grid; gap: 1rem; }
 .steps > li { padding-left: 0.25rem; }
-.steps > li > strong { display: block; margin-bottom: 0.25rem; }
+.steps > li > strong { display: block; margin-bottom: 0.6rem; }
 .steps > li > p { margin: 0 0 0.6rem; }
 .field-row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
 .field-row > label { display: flex; flex-direction: column; gap: 0.3rem; flex: 1 1 16rem; min-width: 0; }
