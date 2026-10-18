@@ -3,21 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Presenter · ZoomInSight</title>
+  <title>Presenter · NarraAssist</title>
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="stylesheet" href="/css/presenter.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
   <div id="sr-alert" class="sr-only" role="alert" aria-live="assertive"></div>
 
   <header>
     <h1>Presenter</h1>
     <span>Room <code class="room" id="room"></code></span>
-    <span id="conn" class="muted">Connecting…</span>
+    <span id="conn" class="muted" aria-live="off">Connecting…</span>
+    <nav class="site-nav" aria-label="Presenter page navigation">
+      <a href="/">Home</a>
+      <a href="#alerts-h">Description prompts</a>
+      <a href="#slides-h">Your slides</a>
+      <a href="#transcript-h">What the tool heard</a>
+      <details class="nav-dropdown">
+        <summary>Accessibility settings</summary>
+        <div id="display-settings"></div>
+      </details>
+    </nav>
   </header>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <p>Keep this page open on your phone or a second screen. It tells you when a blind or low-vision attendee needs something described.</p>
 
     <section aria-labelledby="alerts-h">

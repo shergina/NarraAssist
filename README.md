@@ -1,4 +1,4 @@
-# ZoomInSight: A tool for virtual meeting accessibility for Blind and Low-Vision users
+# NarraAssist: A tool for virtual meeting accessibility for Blind and Low-Vision users
 
 **Group Members Names:** Maria, Tanishka, Saanvi, Anika
 
@@ -12,15 +12,15 @@ Today a BLV attendee has to listen to the presenter and to their screen reader r
 
 ## Features
 
-| Feature | How it works |
-|---|---|
-| Slides before the meeting | The presenter uploads a PDF. Gemini turns every slide into text, chart descriptions and a short spoken overview. The listener can read them and ask questions. |
-| Describe, then catch up | The listener presses a key. The presenter is muted and recorded while the slide overview is read. Then the recording plays at 1.75x speed, pitch preserved, until it reaches live. |
-| Slide change alerts | The listener's browser watches the shared screen. When it changes, Gemini matches it to a slide in the deck, and everyone gets a "slide changed" sound. |
-| Presenter stopped talking | While the listener is not hearing live audio, a falling tone plays if the room goes quiet, in case someone is waiting for them. |
-| Speaking-cue nudges | Presenter audio is transcribed. Every 15 seconds Gemini checks whether the presenter said something like "as you can see here" without describing it, and nudges them. They can accept or dismiss. |
-| Manual requests | The listener can ask the presenter to describe the slide, with an optional note. |
-| Earcons | A wooden knock for slide changes, a falling tone for silence, and a rising two-tone sweep when catch-up reaches live. |
+| Feature                   | How it works                                                                                                                                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Slides before the meeting | The presenter uploads a PDF. Gemini turns every slide into text, chart descriptions and a short spoken overview. The listener can read them and ask questions.                                     |
+| Describe, then catch up   | The listener presses a key. The presenter is muted and recorded while the slide overview is read. Then the recording plays at 1.75x speed, pitch preserved, until it reaches live.                 |
+| Slide change alerts       | The listener's browser watches the shared screen. When it changes, Gemini matches it to a slide in the deck, and everyone gets a "slide changed" sound.                                            |
+| Presenter stopped talking | While the listener is not hearing live audio, a falling tone plays if the room goes quiet, in case someone is waiting for them.                                                                    |
+| Speaking-cue nudges       | Presenter audio is transcribed. Every 15 seconds Gemini checks whether the presenter said something like "as you can see here" without describing it, and nudges them. They can accept or dismiss. |
+| Manual requests           | The listener can ask the presenter to describe the slide, with an optional note.                                                                                                                   |
+| Earcons                   | A wooden knock for slide changes, a falling tone for silence, and a rising two-tone sweep when catch-up reaches live.                                                                              |
 
 ## How it fits together
 
@@ -94,12 +94,12 @@ Tips for a reliable demo:
 
 ### Listener keyboard shortcuts
 
-| Keys | Action |
-|---|---|
+| Keys        | Action                                          |
+| ----------- | ----------------------------------------------- |
 | Alt+Shift+D | Describe the slide, or go back to the presenter |
-| Alt+Shift+L | Skip straight to live |
-| Alt+Shift+R | Ask the presenter to describe the slide |
-| Alt+Shift+A | Repeat the last alert |
+| Alt+Shift+L | Skip straight to live                           |
+| Alt+Shift+R | Ask the presenter to describe the slide         |
+| Alt+Shift+A | Repeat the last alert                           |
 
 On a Mac, Alt is the Option key.
 
@@ -131,14 +131,14 @@ scripts/
 
 Documents:
 
-| File | What it is for |
-|---|---|
-| `PRODUCT.md` | What we are building and why. The source of truth for scope. |
-| `AGENTS.md` | Rules for AI coding tools and new teammates. `CLAUDE.md` and `GEMINI.md` include it. |
-| `docs/ROLES.md` | Who builds what, in what order, and how the lanes connect. |
-| `docs/ARCHITECTURE.md` | Routes, WebSocket messages and shared objects. Update it with any change to them. |
-| `docs/DECISIONS.md` | One line per decision and the reason. |
-| `docs/DEMO.md` | The demo script. |
+| File                   | What it is for                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| `PRODUCT.md`           | What we are building and why. The source of truth for scope.                         |
+| `AGENTS.md`            | Rules for AI coding tools and new teammates. `CLAUDE.md` and `GEMINI.md` include it. |
+| `docs/ROLES.md`        | Who builds what, in what order, and how the lanes connect.                           |
+| `docs/ARCHITECTURE.md` | Routes, WebSocket messages and shared objects. Update it with any change to them.    |
+| `docs/DECISIONS.md`    | One line per decision and the reason.                                                |
+| `docs/DEMO.md`         | The demo script.                                                                     |
 
 ## Team split
 
@@ -165,4 +165,3 @@ Each person's lane, build order and handoffs are in [docs/ROLES.md](docs/ROLES.m
 - Zoom Realtime Media Streams for server-side audio and screen share without tab capture.
 - Zoom's closed captioning API so the transcript also helps deaf and hard of hearing attendees.
 - A small browser extension that adds a global "toggle Zoom mute" shortcut.
-
