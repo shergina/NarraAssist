@@ -7,24 +7,41 @@
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
   <div id="sr-alert" class="sr-only" role="alert" aria-live="assertive"></div>
 
   <header>
     <h1>Listener</h1>
     <span>Room <code class="room" id="room"></code></span>
-    <span id="conn" class="muted">Connecting…</span>
+    <span id="conn" class="muted" aria-live="off">Connecting…</span>
+    <nav class="site-nav" aria-label="Listener page navigation">
+      <a href="/">Home</a>
+      <a href="#live-h">Live meeting</a>
+      <a href="#slide-h">Current slide</a>
+      <a href="#deck-h">Slides and questions</a>
+      <a href="#transcript-h">Transcript</a>
+      <details class="nav-dropdown">
+        <summary>Accessibility settings</summary>
+        <div id="display-settings"></div>
+      </details>
+      <button id="open-settings" type="button">Listener settings</button>
+    </nav>
   </header>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <section aria-labelledby="live-h">
       <h2 id="live-h">Live meeting</h2>
-      <p id="mode" class="status">Not connected to Zoom yet.</p>
+      <p id="mode" class="status" aria-live="off">Not connected to Zoom yet.</p>
+      <p id="screen-reader-help" class="muted" hidden>When the screen reader finishes the slide description, press Alt+Shift+D to return to the presenter and catch up.</p>
       <div class="row">
         <button id="connect" class="primary">Connect to Zoom tab</button>
         <button id="describe">Describe slide</button>
         <button id="live" disabled>Skip to live</button>
+        <button id="floating-video" type="button" aria-pressed="false" disabled>Show floating Zoom video</button>
       </div>
+      <p id="floating-video-status" class="muted" role="status">Connect to a Zoom tab to use floating video.</p>
+      <div id="capture-preview" class="capture-source" aria-hidden="true"></div>
       <p class="muted">Join the meeting with Zoom's "Join from your browser" first. When Chrome asks what to share, pick the Zoom tab and turn on "Also share tab audio".</p>
       <form id="zoom" class="row" aria-label="Speaker names">
         <label>Zoom meeting link, for speaker names
@@ -48,7 +65,7 @@
 
     <section aria-labelledby="deck-h">
       <h2 id="deck-h">Slides and questions</h2>
-      <p id="deck-status" class="muted"></p>
+      <p id="deck-status" class="muted" aria-live="off"></p>
       <div id="summary"></div>
       <form id="ask">
         <label style="width:100%">Ask about the slides or the talk
@@ -56,14 +73,9 @@
         </label>
         <div class="row"><button type="submit">Ask</button></div>
       </form>
-      <div id="answers"></div>
+      <div id="answers" role="region" aria-label="Answers" aria-live="off"></div>
       <h3>All slides</h3>
       <div id="slides"></div>
-    </section>
-
-    <section aria-labelledby="settings-h">
-      <h2 id="settings-h">Settings</h2>
-      <form id="settings"></form>
     </section>
 
     <section aria-labelledby="keys-h">
@@ -74,7 +86,7 @@
 
     <section aria-labelledby="transcript-h">
       <h2 id="transcript-h">Transcript</h2>
-      <div id="transcript" class="transcript" tabindex="0" aria-label="Transcript"></div>
+      <div id="transcript" class="transcript" role="region" aria-labelledby="transcript-h" aria-live="off" tabindex="0"></div>
     </section>
 
     <section>
@@ -91,6 +103,16 @@
       </details>
     </section>
   </main>
+  <dialog id="settings-dialog" aria-labelledby="settings-h" aria-describedby="settings-description">
+    <div class="settings-heading">
+      <div>
+        <h2 id="settings-h">Listener settings</h2>
+        <p id="settings-description" class="muted">Adjust slide alerts and playback preferences. Changes are saved in this browser.</p>
+      </div>
+      <button id="close-settings" type="button">Close</button>
+    </div>
+    <div id="settings"></div>
+  </dialog>
   <script type="module" src="/js/listener.js"></script>
 </body>
 </html>

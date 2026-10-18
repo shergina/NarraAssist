@@ -1,13 +1,29 @@
 // Owner: Person 3.
-import { $, api } from "./common.js";
+import { $, api, h } from "./common.js";
+import { applyDisplaySettings, appearanceSettings } from "./settings.js";
+
+applyDisplaySettings();
+$("#display-settings").replaceChildren(
+  h("p", { class: "muted" }, "These preferences apply to the listener page too."),
+  appearanceSettings(),
+);
 
 $("#create").addEventListener("click", async () => {
-  const { id } = await api("/api/rooms", { method: "POST" });
-  $("#code").textContent = id;
-  $("#listener-link").href = `/listener?room=${id}`;
-  $("#presenter-link").href = `/presenter?room=${id}`;
-  $("#links").hidden = false;
-  $("#listener-link").focus();
+  const button = $("#create");
+  button.disabled = true;
+  $("#room-status").textContent = "";
+  try {
+    const { id } = await api("/api/rooms", { method: "POST" });
+    $("#code").textContent = id;
+    $("#listener-link").href = `/listener?room=${id}`;
+    $("#presenter-link").href = `/presenter?room=${id}`;
+    $("#links").hidden = false;
+    $("#listener-link").focus();
+  } catch (err) {
+    $("#room-status").textContent = `Couldn't create a room: ${err.message}`;
+  } finally {
+    button.disabled = false;
+  }
 });
 
 $("#join").addEventListener("submit", (e) => {

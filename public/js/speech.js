@@ -1,11 +1,18 @@
 // Owner: Person 3. All speech and screen reader announcements go through here.
 import { settings } from "./settings.js";
 
+const pendingAnnouncements = new WeakMap();
+
 export function announce(text, { assertive = false } = {}) {
   const region = document.getElementById(assertive ? "sr-alert" : "sr-status");
   if (!region) return;
+  clearTimeout(pendingAnnouncements.get(region));
   region.textContent = "";
-  setTimeout(() => (region.textContent = text), 60);
+  const timer = setTimeout(() => {
+    region.textContent = text;
+    pendingAnnouncements.delete(region);
+  }, 60);
+  pendingAnnouncements.set(region, timer);
 }
 
 // Chrome's built-in voice has a quirk: a cancel() followed by speak() in the same instant sometimes drops the

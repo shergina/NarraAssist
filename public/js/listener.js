@@ -6,8 +6,14 @@ import { startCapture, watchSlides } from "./capture.js";
 import { MeetingAudio } from "./audio-engine.js";
 import { parseZoomLink, joinAsHelper, fakeHelper } from "./zoom-helper.js";
 import { earcons } from "./earcons.js";
-import { settings } from "./settings.js";
+import { applyDisplaySettings, appearanceSettings, settings } from "./settings.js";
 import { Speaker, announce } from "./speech.js";
+
+applyDisplaySettings();
+$("#display-settings").replaceChildren(
+  h("p", { class: "muted" }, "These preferences are saved in this browser."),
+  appearanceSettings(),
+);
 
 const room = roomCode();
 const speaker = new Speaker();
@@ -19,10 +25,16 @@ const state = {
   audio: null,
   capture: null,
   stopSlides: null,
+  pipWindow: null,
+  pipControls: null,
+  pipRequestId: 0,
+  connecting: false,
   helper: null,
   describing: false,
+  manualDescriptionEnd: false,
   waiting: [], // words held back while a description plays
   speakers: [], // { name, at } not yet announced
+  speakerHistory: [], // { name, at } used to answer "who is speaking" during catch-up
   lastSpeaker: null,
   lastAlert: "",
 };
@@ -30,21 +42,27 @@ const state = {
 $("#room").textContent = room || "none";
 const socket = connectSocket(room, "listener", {
   onMessage,
-  onStatus: (s) => ($("#conn").textContent = STATUS_TEXT[s] || s),
+  onStatus: (s) => {
+    const text = STATUS_TEXT[s] || s;
+    $("#conn").textContent = text;
+    say(text, { assertive: s === "unknown-room" });
+  },
 });
 
 // ---------- what the listener hears ----------
 
 // Nothing speaks over a description: words wait until it ends.
-function say(text) {
+function say(text, options = {}) {
+  if (!text) return;
   state.lastAlert = text;
-  if (state.describing) state.waiting.push(text);
-  else announce(text);
+  if (state.describing) state.waiting.push({ text, options });
+  else announce(text, options);
 }
 
-function flushWaiting() {
-  const words = state.waiting.splice(0);
-  if (words.length) announce(words.join(" "));
+function flushWaiting(prefix = "") {
+  const queued = state.waiting.splice(0);
+  const words = [prefix, ...queued.map(({ text }) => text)].filter(Boolean);
+  if (words.length) announce(words.join(" "), { assertive: queued.some(({ options }) => options.assertive) });
 }
 
 function onMessage(msg) {
@@ -54,6 +72,7 @@ function onMessage(msg) {
       $("#transcript").replaceChildren(...msg.state.transcript.map((t) => h("p", {}, t.text)));
       renderDeck();
       renderSlide();
+      renderFloatingVideo();
       break;
     case "deck":
       state.deck = msg.deck;
@@ -61,10 +80,12 @@ function onMessage(msg) {
       if (msg.summary != null) state.summary = msg.summary;
       renderDeck();
       if (msg.deck.status === "ready") say(`Slides are ready: ${msg.deck.slideCount} slides.`);
+      else if (msg.deck.status === "error") say(`Couldn't read the slides: ${msg.deck.error}`, { assertive: true });
       break;
     case "slide":
       state.slide = msg.slide;
       renderSlide();
+      renderFloatingVideo();
       // The knock for screen changes already played locally. Presenter-driven changes knock here.
       if (msg.source === "presenter") {
         earcons.slideChanged();
@@ -83,36 +104,68 @@ function onMessage(msg) {
   }
 }
 
-async function onLocalSlideChange({ frame }) {
+async function onLocalSlideChange({ at, frame }) {
   earcons.slideChanged();
   try {
-    await api(`/api/rooms/${room}/frame`, { method: "POST", body: frame, headers: { "Content-Type": "image/jpeg" } });
+    await api(`/api/rooms/${room}/frame`, {
+      method: "POST",
+      body: frame,
+      headers: { "Content-Type": "image/jpeg", "X-Captured-At": String(at) },
+    });
   } catch (err) {
     console.warn("Frame check failed:", err.message);
+    say("Couldn't send the slide for description. Check your connection and try again.", { assertive: true });
   }
 }
 
 // Speaker names: only while hearing the speaker, timed against what is actually playing.
 function onSpeaker({ name, at }) {
-  if (settings.get("announce.speaker")) state.speakers.push({ name, at });
+  if (!name || !Number.isFinite(at)) return;
+  const entry = { name, at };
+  state.speakerHistory.push(entry);
+  state.speakerHistory.sort((a, b) => a.at - b.at);
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  while (state.speakerHistory.length > 1 && state.speakerHistory[1].at < cutoff) state.speakerHistory.shift();
+  if (settings.get("announce.speaker")) {
+    state.speakers.push(entry);
+    state.speakers.sort((a, b) => a.at - b.at);
+  }
+}
+
+function speakerAtPlaybackTime() {
+  const heardUpTo = state.audio ? state.audio.meetingTime : Date.now();
+  for (let i = state.speakerHistory.length - 1; i >= 0; i -= 1) {
+    if (state.speakerHistory[i].at <= heardUpTo) return state.speakerHistory[i].name;
+  }
+  return null;
 }
 
 setInterval(() => {
+  if (!settings.get("announce.speaker")) {
+    state.speakers.length = 0;
+    return;
+  }
   if (state.describing || !state.speakers.length) return;
   const heardUpTo = state.audio ? state.audio.meetingTime : Date.now();
-  let due = null;
-  while (state.speakers.length && state.speakers[0].at <= heardUpTo) due = state.speakers.shift();
-  if (due && due.name !== state.lastSpeaker) {
-    state.lastSpeaker = due.name;
-    say(due.name);
+  const names = [];
+  while (state.speakers.length && state.speakers[0].at <= heardUpTo) {
+    const { name } = state.speakers.shift();
+    if (name !== state.lastSpeaker) {
+      state.lastSpeaker = name;
+      names.push(name);
+    }
   }
+  if (names.length) say(names.join(". "));
 }, 250);
 
 // ---------- meeting connection ----------
 
 function wireAudio(audio) {
   state.audio = audio;
-  audio.addEventListener("mode", renderMode);
+  audio.addEventListener("mode", (event) => {
+    renderMode();
+    if (event.detail === "catchup") state.waiting.push({ text: "Catching up to live.", options: {} });
+  });
   audio.addEventListener("caught-up", () => {
     earcons.caughtUp();
     say("Back to live.");
@@ -124,44 +177,297 @@ function wireAudio(audio) {
   renderMode();
 }
 
+function renderFloatingVideo() {
+  const button = $("#floating-video");
+  const supported = Boolean(window.documentPictureInPicture?.requestWindow);
+  const active = Boolean(state.pipWindow && !state.pipWindow.closed);
+  button.disabled = !supported || (!state.capture && !active);
+  button.setAttribute("aria-pressed", String(active));
+  button.textContent = active ? "Hide floating Zoom video" : "Show floating Zoom video";
+  $("#floating-video-status").textContent = !supported
+    ? "Interactive floating player is not supported by this browser."
+    : active
+      ? "Floating meeting player is open."
+      : state.capture
+        ? "Floating meeting player is closed."
+        : "Connect to a Zoom tab to use the floating meeting player.";
+  if (state.pipControls) {
+    state.pipControls.describe.disabled = !state.slide;
+    state.pipControls.describe.textContent = state.describing ? "Back to presenter" : "Describe slide";
+    state.pipControls.status.textContent = $("#mode").textContent;
+  }
+}
+
+function closeFloatingVideo() {
+  state.pipRequestId += 1;
+  const pipWindow = state.pipWindow;
+  state.pipWindow = null;
+  state.pipControls = null;
+  if (state.capture?.video) $("#capture-preview").replaceChildren(state.capture.video);
+  pipWindow?.close();
+  renderFloatingVideo();
+}
+
+function buildFloatingPlayer(pipWindow) {
+  const pipDocument = pipWindow.document;
+  pipDocument.head.replaceChildren();
+  for (const stylesheet of document.head.querySelectorAll('link[rel="stylesheet"], style')) {
+    pipDocument.head.append(stylesheet.cloneNode(true));
+  }
+  const style = pipDocument.createElement("style");
+  style.textContent = `
+    body { min-width: 18rem; margin: 0; padding: .75rem; }
+    .pip-player { display: grid; gap: .65rem; }
+    .pip-player[hidden], .pip-settings[hidden] { display: none; }
+    .pip-player h1 { margin: 0; font-size: 1.1rem; }
+    .pip-video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: .5rem; }
+    .pip-video video { width: 100%; height: 100%; object-fit: contain; }
+    .pip-controls { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+    .pip-controls button { min-height: 2.75rem; }
+    .pip-status { margin: 0; font-size: .95rem; }
+    .pip-settings { max-height: 90vh; overflow: auto; margin: 0; }
+    .pip-settings fieldset { margin: .75rem 0; padding: .5rem; }
+    .pip-settings label { display: flex; flex-direction: row; align-items: center; gap: .5rem; }
+    .pip-settings input[type="checkbox"] { width: 1.25rem; height: 1.25rem; }
+    .pip-settings select { width: 100%; }
+    .pip-settings h2 { font-size: 1rem; }
+  `;
+  pipDocument.head.append(style);
+  pipDocument.documentElement.dataset.contrast = document.documentElement.dataset.contrast;
+  pipDocument.documentElement.dataset.textSize = document.documentElement.dataset.textSize;
+
+  const player = pipDocument.createElement("main");
+  player.className = "pip-player";
+  const heading = pipDocument.createElement("h1");
+  heading.textContent = "ZoomInSight meeting";
+  const videoContainer = pipDocument.createElement("div");
+  videoContainer.className = "pip-video";
+  videoContainer.setAttribute("aria-label", "Shared Zoom tab video");
+  const status = pipDocument.createElement("p");
+  status.className = "pip-status";
+  status.setAttribute("role", "status");
+  const controls = pipDocument.createElement("div");
+  controls.className = "pip-controls";
+  const describe = pipDocument.createElement("button");
+  describe.type = "button";
+  describe.textContent = "Describe slide";
+  describe.addEventListener("click", toggleDescribe);
+  const settingsButton = pipDocument.createElement("button");
+  settingsButton.type = "button";
+  settingsButton.textContent = "Listener settings";
+  const settingsPanel = pipDocument.createElement("section");
+  settingsPanel.className = "pip-settings";
+  settingsPanel.hidden = true;
+  const showSettings = () => {
+    const heading = pipDocument.createElement("h2");
+    heading.textContent = "Listener settings";
+    heading.tabIndex = -1;
+    const back = pipDocument.createElement("button");
+    back.type = "button";
+    back.textContent = "Back to meeting controls";
+    back.addEventListener("click", () => {
+      settingsPanel.hidden = true;
+      player.hidden = false;
+      settingsButton.focus();
+    });
+    settingsPanel.replaceChildren(heading, back);
+
+    const toggles = [
+      ["sound.slideChanged", "Sound when the slide changes"],
+      ["announce.slideTitle", "Announce slide titles"],
+      ["sound.presenterQuiet", "Sound when the presenter stops talking"],
+      ["sound.caughtUp", "Sound when caught up to live"],
+      ["announce.speaker", "Announce who is speaking"],
+      ["video.float", "Automatically open the floating player when connecting"],
+    ];
+    const toggleGroup = pipDocument.createElement("fieldset");
+    const toggleLegend = pipDocument.createElement("legend");
+    toggleLegend.textContent = "Alerts";
+    toggleGroup.append(toggleLegend);
+    for (const [key, labelText] of toggles) {
+      const label = pipDocument.createElement("label");
+      const input = pipDocument.createElement("input");
+      input.type = "checkbox";
+      input.checked = settings.get(key);
+      input.addEventListener("change", () => settings.set(key, input.checked));
+      label.append(input, pipDocument.createTextNode(labelText));
+      toggleGroup.append(label);
+    }
+    settingsPanel.append(toggleGroup);
+
+    const displayGroup = pipDocument.createElement("fieldset");
+    const displayLegend = pipDocument.createElement("legend");
+    displayLegend.textContent = "Display and text";
+    displayGroup.append(displayLegend);
+    for (const [key, labelText] of [
+      ["display.highContrast", "Use high contrast colors"],
+      ["display.largeText", "Use larger text"],
+    ]) {
+      const label = pipDocument.createElement("label");
+      const input = pipDocument.createElement("input");
+      input.type = "checkbox";
+      input.checked = settings.get(key);
+      input.addEventListener("change", () => {
+        settings.set(key, input.checked);
+        applyDisplaySettings();
+        pipDocument.documentElement.dataset.contrast = document.documentElement.dataset.contrast;
+        pipDocument.documentElement.dataset.textSize = document.documentElement.dataset.textSize;
+      });
+      label.append(input, pipDocument.createTextNode(labelText));
+      displayGroup.append(label);
+    }
+    settingsPanel.append(displayGroup);
+
+    const selectGroup = pipDocument.createElement("fieldset");
+    const selectLegend = pipDocument.createElement("legend");
+    selectLegend.textContent = "Speech and catch-up";
+    selectGroup.append(selectLegend);
+    const selects = [
+      ["speech.mode", "Read descriptions with", [["voice", "Built-in voice"], ["screen-reader", "My screen reader"]]],
+      ["voice.rate", "Voice speed", [[1, "1x"], [1.2, "1.2x"], [1.5, "1.5x"], [2, "2x"]]],
+      ["catchup.maxRate", "Fastest catch-up speed", [[1.5, "1.5x"], [2, "2x"], [2.5, "2.5x"]]],
+    ];
+    for (const [key, labelText, options] of selects) {
+      const label = pipDocument.createElement("label");
+      const text = pipDocument.createElement("span");
+      text.textContent = labelText;
+      const select = pipDocument.createElement("select");
+      for (const [value, optionText] of options) {
+        const option = pipDocument.createElement("option");
+        option.value = value;
+        option.textContent = optionText;
+        option.selected = String(settings.get(key)) === String(value);
+        select.append(option);
+      }
+      select.addEventListener("change", () => {
+        const value = key === "speech.mode" ? select.value : Number(select.value);
+        settings.set(key, value);
+        if (key === "catchup.maxRate") state.audio?.setMaxRate(value);
+      });
+      label.append(text, select);
+      selectGroup.append(label);
+    }
+    settingsPanel.append(selectGroup);
+    player.hidden = true;
+    settingsPanel.hidden = false;
+    pipDocument.body.replaceChildren(player, settingsPanel);
+    heading.focus();
+  };
+  settingsButton.addEventListener("click", showSettings);
+  controls.append(describe, settingsButton);
+  player.append(heading, videoContainer, status, controls);
+  pipDocument.body.replaceChildren(player, settingsPanel);
+  pipDocument.addEventListener("keydown", (event) => {
+    if (!event.altKey || !event.shiftKey) return;
+    if (pipDocument.activeElement?.matches("input, textarea, select, [contenteditable='true']")) return;
+    const shortcut = SHORTCUTS.find(([code]) => code === event.code);
+    if (!shortcut) return;
+    event.preventDefault();
+    shortcut[2]();
+  });
+
+  state.pipWindow = pipWindow;
+  state.pipControls = { videoContainer, status, describe, showSettings };
+  if (state.capture?.video) videoContainer.append(state.capture.video);
+  pipWindow.addEventListener("pagehide", () => {
+    if (state.pipWindow !== pipWindow) return;
+    state.pipWindow = null;
+    state.pipControls = null;
+    if (state.capture?.video) $("#capture-preview").replaceChildren(state.capture.video);
+    renderFloatingVideo();
+  });
+  renderFloatingVideo();
+}
+
+async function openFloatingVideo() {
+  const requestWindow = window.documentPictureInPicture?.requestWindow;
+  if (!requestWindow) {
+    renderFloatingVideo();
+    say("Interactive floating player is not supported in this browser.", { assertive: true });
+    return;
+  }
+  if (state.pipWindow) return;
+  const requestId = ++state.pipRequestId;
+  try {
+    const pipWindow = await window.documentPictureInPicture.requestWindow({ width: 380, height: 430 });
+    if (requestId !== state.pipRequestId) {
+      pipWindow.close();
+      return;
+    }
+    buildFloatingPlayer(pipWindow);
+  } catch (err) {
+    say(`Couldn't open the floating player: ${err.message}`, { assertive: true });
+  }
+}
+
+function toggleFloatingVideo() {
+  if (!state.capture && !state.pipWindow) {
+    say("Connect to a Zoom tab before opening the floating player.");
+    return;
+  }
+  if (state.pipWindow) closeFloatingVideo();
+  else openFloatingVideo();
+}
+
 $("#connect").addEventListener("click", async () => {
   if (state.capture) return disconnect();
+  if (state.connecting) return;
+  state.connecting = true;
+  $("#connect").disabled = true;
+  $("#connect").textContent = "Connecting…";
+  const floatingPlayerRequest = settings.get("video.float") ? openFloatingVideo() : null;
   const ctx = new AudioContext(); // created during the click so Chrome allows sound
   try {
     state.capture = await startCapture();
   } catch {
+    state.connecting = false;
     ctx.close();
-    return announce("Sharing was cancelled. Press Connect to try again.", { assertive: true });
+    closeFloatingVideo();
+    $("#connect").disabled = false;
+    $("#connect").textContent = "Connect to Zoom tab";
+    return say("Sharing was cancelled. Press Connect to try again.", { assertive: true });
   }
+  state.connecting = false;
+  $("#connect").disabled = false;
+  state.capture.video.setAttribute("aria-hidden", "true");
+  state.capture.video.tabIndex = -1;
+  if (state.pipControls) state.pipControls.videoContainer.append(state.capture.video);
+  else $("#capture-preview").replaceChildren(state.capture.video);
+  renderFloatingVideo();
+  say("Connected to the meeting.");
+  await floatingPlayerRequest;
   const audio = new MeetingAudio(ctx, state.capture.stream, { maxRate: settings.get("catchup.maxRate") });
   wireAudio(audio);
   await audio.streamPcm((chunk) => socket.sendBinary(chunk));
   state.stopSlides = watchSlides(state.capture.video, { onChange: onLocalSlideChange });
   state.capture.stream.getVideoTracks()[0].addEventListener("ended", disconnect);
   $("#connect").textContent = "Disconnect";
-  announce("Connected to the meeting.");
 });
 
-function disconnect() {
+async function disconnect() {
+  if (!state.capture) return;
   state.stopSlides?.();
   state.capture?.stream.getTracks().forEach((t) => t.stop());
   state.audio?.stop();
+  closeFloatingVideo();
+  $("#capture-preview").replaceChildren();
   Object.assign(state, { capture: null, audio: null, stopSlides: null });
   $("#connect").textContent = "Connect to Zoom tab";
   $("#mode").textContent = "Not connected to Zoom yet.";
-  announce("Disconnected from the meeting.");
+  renderFloatingVideo();
+  say("Disconnected from the meeting.");
 }
 
 $("#zoom").addEventListener("submit", async (e) => {
   e.preventDefault();
   const meeting = parseZoomLink($("#zoom-link").value);
-  if (!meeting) return announce("That doesn't look like a Zoom link or meeting ID.", { assertive: true });
+  if (!meeting) return say("That doesn't look like a Zoom link or meeting ID.", { assertive: true });
   try {
     state.helper = await joinAsHelper({ ...meeting, container: $("#zoom-container") });
     state.helper.addEventListener("speaker", (ev) => onSpeaker(ev.detail));
-    announce("Speaker names are on.");
+    say("Speaker names are on.");
   } catch (err) {
-    announce(err.message, { assertive: true });
+    say(err.message, { assertive: true });
   }
 });
 
@@ -171,17 +477,26 @@ function slideSpeech(slide) {
   return [`${slideLabel(slide)}.`, slide.overview || slide.text].filter(Boolean).join(" ");
 }
 
+function describeSlide(slide = state.slide) {
+  if (!slide) return say("No slide yet.");
+  speaker.cancel();
+  state.describing = true;
+  state.manualDescriptionEnd = false;
+  state.audio?.hold();
+  state.manualDescriptionEnd = !speaker.speak(slideSpeech(slide), {
+    onEnd: () => state.describing && stopDescribing(),
+  });
+  renderMode();
+}
+
 function toggleDescribe() {
   if (state.describing) return stopDescribing();
-  if (!state.slide) return announce("No slide yet.");
-  state.describing = true;
-  state.audio?.hold();
-  renderMode();
-  speaker.speak(slideSpeech(state.slide), { onEnd: () => state.describing && stopDescribing() });
+  describeSlide();
 }
 
 function stopDescribing() {
   state.describing = false;
+  state.manualDescriptionEnd = false;
   speaker.cancel();
   state.audio?.catchUp();
   renderMode();
@@ -190,10 +505,11 @@ function stopDescribing() {
 
 function skipToLive() {
   state.describing = false;
+  state.manualDescriptionEnd = false;
   speaker.cancel();
   state.audio?.skipToLive();
   renderMode();
-  flushWaiting();
+  flushWaiting("Back to live.");
 }
 
 function requestDescription(note = "") {
@@ -202,15 +518,18 @@ function requestDescription(note = "") {
 
 function renderMode() {
   const audio = state.audio;
+  $("#screen-reader-help").hidden = !state.manualDescriptionEnd;
   $("#describe").textContent = state.describing ? "Back to presenter" : "Describe slide";
   $("#live").disabled = !audio || audio.mode === "live";
-  if (!audio) return;
-  const behind = Math.round(audio.secondsBehind);
-  $("#mode").textContent = {
-    live: "Live: you are hearing the presenter.",
-    held: `Paused for the description. ${behind} seconds behind.`,
-    catchup: `Catching up. ${behind} seconds behind.`,
-  }[audio.mode];
+  if (audio) {
+    const behind = Math.round(audio.secondsBehind);
+    $("#mode").textContent = {
+      live: "Live: you are hearing the presenter.",
+      held: `Paused for the description. ${behind} seconds behind.`,
+      catchup: `Catching up. ${behind} seconds behind.`,
+    }[audio.mode];
+  }
+  renderFloatingVideo();
 }
 setInterval(() => state.audio && state.audio.mode !== "live" && renderMode(), 1000);
 
@@ -228,17 +547,22 @@ const SHORTCUTS = [
   ["KeyD", "Describe the slide, or go back to the presenter", toggleDescribe],
   ["KeyL", "Skip straight to live", skipToLive],
   ["KeyR", "Ask the presenter to describe something", () => requestDescription()],
-  ["KeyA", "Repeat the last alert", () => announce(state.lastAlert || "No alerts yet.")],
-  ["KeyW", "Say who is speaking", () => announce(state.lastSpeaker ? `${state.lastSpeaker} is speaking.` : "No speaker yet.")],
-  ["KeyS", "Say the current slide", () => announce(slideLabel(state.slide))],
+  ["KeyA", "Repeat the last alert", () => say(state.lastAlert || "No alerts yet.")],
+  ["KeyW", "Say who is speaking", () => {
+    const name = speakerAtPlaybackTime();
+    say(name ? `${name} is speaking.` : "No speaker yet.");
+  }],
+  ["KeyS", "Say the current slide", () => say(slideLabel(state.slide))],
   ["KeyQ", "Ask a question about the slides", () => $("#question").focus()],
-  ["KeyH", "Hear all shortcuts", () => announce(SHORTCUTS.map(([code, label]) => `Alt Shift ${code.slice(3)}: ${label}.`).join(" "))],
+  ["KeyV", "Show or hide the floating Zoom video", toggleFloatingVideo],
+  ["KeyH", "Hear all shortcuts", () => say(SHORTCUTS.map(([code, label]) => `Alt Shift ${code.slice(3)}: ${label}.`).join(" "))],
 ];
 
 $("#shortcuts").replaceChildren(...SHORTCUTS.map(([code, label]) => h("li", {}, h("kbd", {}, `Alt+Shift+${code.slice(3)}`), ` ${label}`)));
 
 document.addEventListener("keydown", (e) => {
   if (!e.altKey || !e.shiftKey) return;
+  if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable='true']")) return;
   const match = SHORTCUTS.find(([code]) => code === e.code);
   if (match) {
     e.preventDefault();
@@ -256,25 +580,71 @@ const SETTING_LABELS = {
   "announce.slideTitle": "Announce slide titles",
 };
 
+const SETTING_GROUPS = [
+  {
+    label: "Live slide explainer",
+    keys: ["sound.slideChanged", "announce.slideTitle"],
+  },
+  {
+    label: "Meeting alerts",
+    keys: ["sound.presenterQuiet", "sound.caughtUp", "announce.speaker"],
+  },
+];
+
 function renderSettings() {
-  const toggles = Object.entries(SETTING_LABELS).map(([key, label]) =>
-    h("label", { class: "inline" },
-      h("input", { type: "checkbox", checked: settings.get(key), onchange: (e) => settings.set(key, e.target.checked) }),
-      label),
+  const groups = SETTING_GROUPS.map(({ label, keys }) =>
+    h("fieldset", { class: "settings-group" },
+      h("legend", {}, label),
+      ...keys.map((key) =>
+        h("label", { class: "setting-toggle" },
+          h("input", {
+            type: "checkbox",
+            checked: settings.get(key),
+            onchange: (e) => settings.set(key, e.target.checked),
+          }),
+          h("span", {}, SETTING_LABELS[key])),
+      )),
   );
   const select = (key, label, options) =>
     h("label", {}, label,
-      h("select", { onchange: (e) => settings.set(key, isNaN(e.target.value) ? e.target.value : Number(e.target.value)) },
+      h("select", {
+        onchange: (e) => {
+          const value = key === "speech.mode" ? e.target.value : Number(e.target.value);
+          settings.set(key, value);
+          if (key === "catchup.maxRate") state.audio?.setMaxRate(value);
+        },
+      },
         options.map(([value, text]) => h("option", { value, selected: String(settings.get(key)) === String(value) }, text))));
   $("#settings").replaceChildren(
-    ...toggles.map((t) => h("div", {}, t)),
-    h("div", { class: "row" },
-      select("speech.mode", "Read descriptions with", [["voice", "Built-in voice"], ["screen-reader", "My screen reader"]]),
-      select("voice.rate", "Voice speed", [[1, "1x"], [1.2, "1.2x"], [1.5, "1.5x"], [2, "2x"]]),
-      select("catchup.maxRate", "Fastest catch-up speed", [[1.5, "1.5x"], [2, "2x"], [2.5, "2.5x"]])),
+    ...groups,
+    h("fieldset", { class: "settings-group" },
+      h("legend", {}, "Speech and catch-up"),
+      h("div", { class: "settings-options" },
+        select("speech.mode", "Read descriptions with", [["voice", "Built-in voice"], ["screen-reader", "My screen reader"]]),
+        select("voice.rate", "Voice speed", [[1, "1x"], [1.2, "1.2x"], [1.5, "1.5x"], [2, "2x"]]),
+        select("catchup.maxRate", "Fastest catch-up speed", [[1.5, "1.5x"], [2, "2x"], [2.5, "2.5x"]]))),
+    h("fieldset", { class: "settings-group" },
+      h("legend", {}, "Picture-in-picture"),
+      h("label", { class: "setting-toggle" },
+        h("input", {
+          type: "checkbox",
+          checked: settings.get("video.float"),
+          onchange: (e) => {
+            settings.set("video.float", e.target.checked);
+            if (e.target.checked && state.capture && !state.pipWindow) openFloatingVideo();
+            else if (!e.target.checked && state.pipWindow) closeFloatingVideo();
+          },
+        }),
+        h("span", {}, "Open the interactive floating player after connecting"))),
   );
 }
 renderSettings();
+
+const settingsDialog = $("#settings-dialog");
+$("#open-settings").addEventListener("click", () => settingsDialog.showModal());
+$("#close-settings").addEventListener("click", () => settingsDialog.close());
+$("#floating-video").addEventListener("click", toggleFloatingVideo);
+renderFloatingVideo();
 
 // ---------- slides and questions ----------
 
@@ -283,7 +653,7 @@ function slideBlock(slide, headingTag) {
     h(headingTag, {}, slideLabel(slide)),
     slide.text && h("p", { class: "pre" }, slide.text),
     slide.visuals && h("p", {}, h("strong", {}, "Visuals: "), slide.visuals),
-    h("button", { onclick: () => speaker.speak(slideSpeech(slide)) }, "Read overview aloud"));
+    h("button", { onclick: () => describeSlide(slide) }, "Read overview aloud"));
 }
 
 function renderSlide() {
@@ -303,13 +673,15 @@ $("#ask").addEventListener("submit", async (e) => {
   e.preventDefault();
   const question = $("#question").value.trim();
   if (!question) return;
-  const answer = h("p", { "aria-live": "polite" }, "Thinking…");
+  const answer = h("p", {}, "Thinking…");
   $("#answers").prepend(h("div", { class: "card" }, h("p", {}, h("strong", {}, "You asked: "), question), answer));
   $("#question").value = "";
   try {
     answer.textContent = (await api(`/api/rooms/${room}/ask`, { method: "POST", json: { question } })).answer;
+    say(`Answer: ${answer.textContent}`);
   } catch (err) {
     answer.textContent = `Sorry, that failed: ${err.message}`;
+    say(answer.textContent, { assertive: true });
   }
 });
 
@@ -323,9 +695,9 @@ function addTranscript(text) {
 // ---------- developer tools ----------
 
 $("#dev-meeting").addEventListener("click", () => {
-  if (state.audio) return announce("Already connected.");
+  if (state.audio) return say("Already connected.");
   wireAudio(new MeetingAudio(new AudioContext(), new MediaStream(), { maxRate: settings.get("catchup.maxRate") }));
-  announce("Simulated meeting connected.");
+  say("Simulated meeting connected.");
 });
 $("#dev-slide").addEventListener("click", () => onLocalSlideChange({ at: Date.now(), frame: new Blob([new Uint8Array([255, 216, 255])], { type: "image/jpeg" }) }));
 $("#dev-speaker").addEventListener("click", () => {
