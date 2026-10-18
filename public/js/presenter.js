@@ -164,7 +164,7 @@ function showPreview(file) {
   previewUrl = URL.createObjectURL(file);
   shownPage = null;
   browsing = false;
-  for (const id of ["#preview-block", "#preview", "#preview-status", "#preview-controls", "#open-preview"]) $(id).hidden = false;
+  for (const id of ["#preview-section", "#preview", "#preview-status", "#preview-controls", "#open-preview"]) $(id).hidden = false;
   updatePreview();
 }
 
