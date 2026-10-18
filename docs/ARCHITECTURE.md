@@ -18,7 +18,7 @@ Zoom web client tab ──(Chrome tab capture: video + audio)──► Listener 
                                                      Presenter page (phone or second screen)
 ```
 
-Rooms are in memory. A server restart clears them.
+Rooms are in memory. A server restart clears their contents (slides, transcript, pending cues), but any code is re-created on first use, so pages that are already open keep working after a restart. Codes are normalized: letters and digits only, case-insensitive, 4 to 24 long, so a pasted Zoom meeting ID like "884 076 2216" becomes room 8840762216 rather than an error. The dev server restarts on every saved file.
 
 ## Shared objects
 
@@ -50,7 +50,7 @@ Rooms are in memory. A server restart clears them.
 | `GET /api/rooms/:id` | | room state: `{ id, deck, summary, slides, current, transcript }` |
 | `POST /api/rooms/:id/deck` | PDF bytes, `Content-Type: application/pdf`, `X-File-Name` | `202 { deck }`, then a `deck` socket message when done |
 | `GET /api/rooms/:id/deck.pdf` | | the PDF |
-| `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, reason, slide }`. `reason` is `"described"`, `"nothing-shared"` (no content on screen; the current slide is cleared and a `slide` message with `slide: null` is broadcast) or `"no-match"` (content on screen but not a page of the deck). Takes about 2.5 s. Described at most once every 3 s per room; the newest frame wins |
+| `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, reason, slide }`. `reason` is `"described"`, `"nothing-shared"` (no content on screen; after two such frames in a row the current slide is cleared and a `slide` message with `slide: null` is broadcast) or `"no-match"` (content on screen but not a page of the deck). Takes about 2.5 s. Described at most once every 3 s per room; the newest frame wins |
 | `POST /api/rooms/:id/ask` | `{ question }` | `{ answer }` |
 
 | `POST /api/zoom/signature` | `{ meetingNumber }` | `{ signature, sdkKey }`. Person 4. Answers 501 until built |

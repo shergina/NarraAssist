@@ -1,14 +1,22 @@
-// Owner: Person 1. One room per meeting, kept in memory. A server restart clears all rooms.
+// Owner: Person 1. One room per meeting, kept in memory. A server restart clears their contents, but any
+// well-formed code is re-created on first use, so open pages survive a restart (the dev server restarts on every save).
 import { randomInt } from "node:crypto";
 import { HttpError } from "./errors.js";
 
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const rooms = new Map();
 
-export function createRoom() {
-  let id;
-  do id = Array.from({ length: 6 }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
-  while (rooms.has(id));
+const CODE = /^[A-Z0-9]{4,24}$/;
+
+// "884 076 2216" or "abc-123" -> "8840762216" / "ABC123". Pages and sockets send the raw text; be forgiving.
+export const normalizeCode = (id) => String(id || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+export function createRoom(wanted) {
+  let id = normalizeCode(wanted);
+  if (!CODE.test(id) || rooms.has(id)) {
+    do id = Array.from({ length: 6 }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
+    while (rooms.has(id));
+  }
   const room = {
     id,
     deck: { status: "none", fileName: null, error: null, slideCount: 0 },
@@ -25,13 +33,18 @@ export function createRoom() {
   return room;
 }
 
+// Unknown but well-formed codes are created on the spot, so a page that outlives a server restart keeps working.
 export function findRoom(id) {
-  return rooms.get(String(id || "").trim().toUpperCase()) || null;
+  const code = normalizeCode(id);
+  if (rooms.has(code)) return rooms.get(code);
+  if (!CODE.test(code)) return null;
+  console.log(`[room] ${code} created on first use`);
+  return createRoom(code);
 }
 
 export function getRoom(id) {
   const room = findRoom(id);
-  if (!room) throw new HttpError(404, "No room with that code. Rooms reset when the server restarts.");
+  if (!room) throw new HttpError(404, "That doesn't look like a room code. Use the link from Create room.");
   return room;
 }
 
