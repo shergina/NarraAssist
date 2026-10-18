@@ -15,11 +15,13 @@ export function announce(text, { assertive = false } = {}) {
   pendingAnnouncements.set(region, timer);
 }
 
+// Chrome's built-in voice has a quirk: a cancel() followed by speak() in the same instant sometimes drops the
+// new text and keeps reading the old one. So: silence the old reading's callbacks, cancel, wait a moment, then speak.
+const CANCEL_SETTLE_MS = 120;
+
 export class Speaker {
-  constructor() {
-    this.active = null;
-    this.generation = 0;
-  }
+  #active = null;
+  #pending = null;
 
   // Returns true if onEnd will fire when speech finishes.
   speak(text, { onEnd } = {}) {
@@ -28,24 +30,28 @@ export class Speaker {
       announce(text, { assertive: true });
       return false;
     }
-
-    const generation = this.generation;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = settings.get("voice.rate");
     utterance.onend = utterance.onerror = () => {
-      if (this.generation !== generation || this.active !== utterance) return;
-      this.active = null;
+      if (this.#active !== utterance) return; // an older reading ending must not trigger a newer one's onEnd
+      this.#active = null;
       onEnd?.();
     };
-    this.active = utterance;
-    speechSynthesis.speak(utterance);
+    this.#active = utterance;
+    this.#pending = setTimeout(() => {
+      this.#pending = null;
+      if (this.#active !== utterance) return;
+      speechSynthesis.resume(); // Chrome can get stuck paused after a cancel
+      speechSynthesis.speak(utterance);
+    }, CANCEL_SETTLE_MS);
     return true;
   }
 
   cancel() {
-    this.generation += 1;
-    if (this.active) this.active.onend = this.active.onerror = null;
-    this.active = null;
+    clearTimeout(this.#pending);
+    this.#pending = null;
+    if (this.#active) this.#active.onend = this.#active.onerror = null;
+    this.#active = null;
     if ("speechSynthesis" in window) speechSynthesis.cancel();
   }
 }
