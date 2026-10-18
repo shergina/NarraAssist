@@ -1,5 +1,4 @@
 // Owner: Person 1. Decides when to nudge the presenter.
-// TODO(Person 1): feed dismissed cues back in, and only check self-description early in the talk.
 import { randomUUID } from "node:crypto";
 import * as gemini from "./gemini.js";
 import { addPending } from "./rooms.js";
@@ -49,13 +48,8 @@ export async function maybeCheckCues(room, { force = false } = {}) {
   if (!force && now - room.cue.lastCheckAt < CHECK_EVERY_MS) return;
   room.cue.lastCheckAt = now;
   const transcript = room.transcript.filter((t) => t.at > now - 60_000).map((t) => t.text).join(" ");
-  let result;
-  try {
-    result = await gemini.detectCue({ slide: room.current, transcript, dismissed: [] });
-  } catch (err) {
-    if (err.status === 501) return; // the live cue check isn't built yet; the phrase check above still nudges
-    throw err;
-  }
+  if (!transcript) return;
+  const result = await gemini.detectCue({ slide: room.current, transcript, dismissed: room.cue.dismissed });
   if (result.shouldNudge) nudge(room, result);
 }
 

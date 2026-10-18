@@ -30,7 +30,7 @@ export function createRoom(wanted) {
     transcript: [],
     clients: new Set(),
     pending: new Map(),
-    cue: { lastCheckAt: 0, lastNudgeAt: 0 },
+    cue: { lastCheckAt: 0, lastNudgeAt: 0, dismissed: [] }, // dismissed: nudge kinds the presenter said no to
   };
   const saved = loadDeck(id);
   if (saved) Object.assign(room, saved);
@@ -112,6 +112,7 @@ export function respondTo(room, id, action) {
   if (!item) return false;
   room.pending.delete(id);
   action = action === "accept" ? "accept" : "dismiss";
+  if (action === "dismiss" && item.kind === "nudge" && item.cue && !room.cue.dismissed.includes(item.cue)) room.cue.dismissed.push(item.cue);
   broadcast(room, { type: "resolved", id: item.id }, { role: "presenter" });
   if (action === "accept" || item.kind === "request") {
     broadcast(room, { type: "presenter-response", kind: item.kind, action, slide: item.slide }, { role: "listener" });

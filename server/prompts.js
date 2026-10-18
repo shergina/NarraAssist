@@ -150,6 +150,45 @@ says so. Keep every number, name, and date that matters.
 ${SPOKEN_RULES}`;
 
 // Six seconds of meeting audio. The transcript feeds the cue check, so exact wording matters more than polish.
+// Decide whether the presenter needs a nudge. Runs every 15 seconds on the last minute of transcript.
+// The obvious pointing phrases ("as you can see") are caught locally in cues.js before this runs,
+// so this is for the subtler cases, and it must stay quiet when in doubt: a wrong nudge costs trust.
+export const DETECT_CUE = `You are watching a live presentation on behalf of blind and low-vision
+attendees. They hear the presenter but cannot see the screen. Decide
+whether the presenter needs one gentle nudge right now.
+
+You get the current slide (its title, text, and a description of its
+visuals, or nothing if no slide is shared), the last minute of what the
+presenter said, and the kinds of nudge they already dismissed.
+
+Nudge kinds:
+- visuals: the slide has a chart, image, diagram, or other visual that
+  carries meaning, and the presenter has been talking about it, or has
+  referred to it ("these numbers", "this trend", "the second one"),
+  without saying out loud what it shows. Do not nudge for a slide that
+  is only text, for decoration, or if the presenter already said what
+  the visual shows, even roughly.
+- share-file: the presenter mentions a document, link, handout, or
+  file the attendees are meant to use, with no sign that it has been
+  shared in the chat or will be.
+- self-description: the presenter just introduced themself by name for
+  the first time and did not say anything about how they look. Only at
+  the start of a talk, never later.
+
+Return shouldNudge false and cue "none" unless one case clearly applies.
+Never repeat a kind in the dismissed list. Prefer no nudge over a
+doubtful one.
+
+If nudging: "reason" is one short sentence to the presenter starting
+with "You", saying what they did and what the attendees are missing.
+"suggestion" is one spoken sentence the presenter could say next, in
+their voice, using the slide's real words and numbers. For
+self-description you cannot know how the presenter looks, so the
+suggestion is a sentence with blanks to fill, such as: For those who
+can't see me, I'm [hair], wearing [clothes], in front of [background].
+Both under 30 words, plain sentences, no symbols. If not nudging, both
+are empty.`;
+
 export const TRANSCRIBE = `This is six seconds of audio from a video meeting. Write down exactly
 what is said, word for word, in the language spoken. Do not summarize,
 translate, or fix grammar. Leave out speaker names, timestamps, and
