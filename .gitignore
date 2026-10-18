@@ -3,6 +3,7 @@ node_modules/
 .env.*
 !.env.example
 *.log
+data/
 .DS_Store
 Thumbs.db
 .vscode/*

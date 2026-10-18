@@ -7,7 +7,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as gemini from "./gemini.js";
 import { HttpError } from "./errors.js";
-import { createRoom, getRoom, publicState, broadcast, setCurrentSlide, slideByNumber, addTranscript } from "./rooms.js";
+import { createRoom, getRoom, publicState, broadcast, setCurrentSlide, slideByNumber, addTranscript, restoreSavedRooms } from "./rooms.js";
+import { saveDeck } from "./store.js";
 import { attachSockets } from "./sockets.js";
 import { maybeCheckCues } from "./cues.js";
 import { zoomRouter } from "./zoom.js";
@@ -44,6 +45,7 @@ app.post("/api/rooms/:id/deck", express.raw({ type: "application/pdf", limit: "2
     const out = await gemini.processDeck(room.pdf);
     Object.assign(room, { slides: out.slides, summary: out.summary });
     room.deck = { ...room.deck, status: "ready", slideCount: out.slides.length };
+    saveDeck(room);
   } catch (err) {
     room.deck = { ...room.deck, status: "error", error: err.message };
   }
@@ -125,6 +127,7 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: err.message });
 });
 
+restoreSavedRooms();
 const server = createServer(app);
 attachSockets(server);
 server.listen(PORT, () => {
