@@ -51,7 +51,7 @@ Rooms are in memory, and each uploaded deck (the PDF plus its descriptions) is a
 | `POST /api/rooms/:id/deck` | PDF bytes, `Content-Type: application/pdf`, `X-File-Name` | `202 { deck }`, then a `deck` socket message when done |
 | `GET /api/rooms/:id/deck.pdf` | | the PDF |
 | `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, reason, slide }`. `reason` is `"described"`, `"nothing-shared"` (no content on screen; once nothing has been shared for 8 seconds the current slide is cleared and a `slide` message with `slide: null` is broadcast) or `"no-match"` (content on screen but not a page of the deck; the screenshot is described instead, so `slide` is still filled). Takes about 2.5 s. Described at most once every 3 s per room; the newest frame wins |
-| `POST /api/rooms/:id/ask` | `{ question }` | `{ answer }` |
+| `POST /api/rooms/:id/ask` | `{ question, history?: [{ question, answer }] }` (the page sends its last 3 pairs for follow-ups) | `{ found, answer, slides: [numbers] }`. Answers come from the uploaded deck only; 409 if no deck. When `found` is false, `answer` is "That isn't covered in the slides." The server rejects an answer that cites no real slide. Meant for before the meeting; the page decides when to show the box |
 
 | `POST /api/zoom/signature` | `{ meetingNumber }` | `{ signature, sdkKey }`. Person 4. Answers 501 until built |
 | `POST /api/rooms/:id/dev/transcript` | `{ text }` | Development only. Adds a transcript line and runs the cue check immediately |

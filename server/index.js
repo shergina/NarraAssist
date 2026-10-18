@@ -105,12 +105,23 @@ function saveFrame(room, jpeg, reason) {
   }
 }
 
+// Questions are answered from the uploaded deck only. The server checks the model's citations: an answer that
+// claims to be found but points at no real slide is replaced by "not in the slides", so a bluff has nowhere to point.
+const NOT_IN_SLIDES = "That isn't covered in the slides.";
 app.post("/api/rooms/:id/ask", async (req, res) => {
   const room = getRoom(req.params.id);
-  const question = String(req.body?.question || "").trim();
+  const question = String(req.body?.question || "").trim().slice(0, 500);
   if (!question) throw new HttpError(400, "Ask a question.");
-  const transcript = room.transcript.slice(-15).map((t) => t.text).join(" ");
-  res.json({ answer: await gemini.answerQuestion({ question, pdf: room.pdf, slide: room.current, transcript }) });
+  if (!room.slides.length) throw new HttpError(409, "No slides have been uploaded yet. Ask the presenter to upload them first.");
+  const history = Array.isArray(req.body?.history)
+    ? req.body.history.slice(-3).map((h) => ({ question: String(h.question || "").slice(0, 500), answer: String(h.answer || "").slice(0, 1000) }))
+    : [];
+  const out = await gemini.answerQuestion({ question, slides: room.slides, history });
+  const valid = new Set(room.slides.map((s) => s.number));
+  const cited = (out.slideNumbers || []).filter((n) => valid.has(n));
+  const found = Boolean(out.found && out.answer?.trim() && cited.length);
+  if (out.found && !found) console.log(`[ask] ${room.id} answer rejected: no valid slide cited for "${question.slice(0, 60)}"`);
+  res.json({ found, answer: found ? out.answer.trim() : NOT_IN_SLIDES, slides: found ? cited : [] });
 });
 
 // Development only: add a transcript line and run the cue check now, to test nudges without audio.
