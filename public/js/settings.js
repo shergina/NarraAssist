@@ -12,6 +12,7 @@ const DEFAULTS = {
   "speech.mode": "voice", // "voice" | "screen-reader"
   "display.highContrast": false,
   "display.largeText": false,
+  "video.float": true,
 };
 
 export const settings = {
