@@ -1,14 +1,19 @@
-// Owner: Person 1. One room per meeting, kept in memory. A server restart clears all rooms.
+// Owner: Person 1. One room per meeting, kept in memory. A server restart clears their contents, but any
+// well-formed code is re-created on first use, so open pages survive a restart (the dev server restarts on every save).
 import { randomInt } from "node:crypto";
 import { HttpError } from "./errors.js";
 
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const rooms = new Map();
 
-export function createRoom() {
-  let id;
-  do id = Array.from({ length: 6 }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
-  while (rooms.has(id));
+const CODE = /^[A-Z0-9]{4,12}$/;
+
+export function createRoom(wanted) {
+  let id = String(wanted || "").trim().toUpperCase();
+  if (!CODE.test(id) || rooms.has(id)) {
+    do id = Array.from({ length: 6 }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
+    while (rooms.has(id));
+  }
   const room = {
     id,
     deck: { status: "none", fileName: null, error: null, slideCount: 0 },
@@ -25,13 +30,18 @@ export function createRoom() {
   return room;
 }
 
+// Unknown but well-formed codes are created on the spot, so a page that outlives a server restart keeps working.
 export function findRoom(id) {
-  return rooms.get(String(id || "").trim().toUpperCase()) || null;
+  const code = String(id || "").trim().toUpperCase();
+  if (rooms.has(code)) return rooms.get(code);
+  if (!CODE.test(code)) return null;
+  console.log(`[room] ${code} created on first use`);
+  return createRoom(code);
 }
 
 export function getRoom(id) {
   const room = findRoom(id);
-  if (!room) throw new HttpError(404, "No room with that code. Rooms reset when the server restarts.");
+  if (!room) throw new HttpError(404, "That doesn't look like a room code.");
   return room;
 }
 
