@@ -521,6 +521,7 @@ function requestDescription(note = "") {
 }
 
 function renderMode() {
+  renderChatState();
   const audio = state.audio;
   $("#screen-reader-help").hidden = !state.manualDescriptionEnd;
   $("#describe").textContent = state.describing ? "Back to presenter" : "Describe slide";
@@ -674,22 +675,64 @@ function renderDeck() {
     : { processing: `Preparing ${d.fileName}…`, ready: `${d.fileName}: ${d.slideCount} slides.`, error: `Couldn't read the slides: ${d.error}` }[d.status];
   $("#summary").replaceChildren(...(state.summary ? [h("h3", {}, "Summary"), h("p", {}, state.summary)] : []));
   $("#slides").replaceChildren(...state.slides.map((s) => slideBlock(s, "h4")));
+  renderChatState();
 }
+
+// ---------- ask about the slides (before the meeting) ----------
+// A small chat under the slide list. Answers come from the uploaded deck only. The server gets the last
+// three exchanges so follow-ups work. Reading an answer never touches the meeting audio.
+
+const chat = { history: [] };
+
+function chatMessage(role, text, { quiet = false } = {}) {
+  const who = role === "user" ? "You" : "Answer";
+  const node = h("div", { class: `msg ${role}${quiet ? " quiet" : ""}` },
+    h("span", { class: "sr-only" }, `${who}: `),
+    h("p", {}, text));
+  $("#chat-log").append(node);
+  $("#chat-log").scrollTop = $("#chat-log").scrollHeight;
+  return node;
+}
+
+function renderChatState() {
+  const box = $("#question");
+  const button = $("#ask button");
+  const hasDeck = state.slides.length > 0;
+  const live = Boolean(state.capture);
+  box.disabled = button.disabled = !hasDeck || live;
+  $("#chat-note").textContent = !hasDeck
+    ? "Questions work once the presenter has uploaded the slides."
+    : live
+      ? "Available before the talk. Disconnect from the Zoom tab to ask questions."
+      : "Answers come only from the uploaded slides. If something isn't in them, it will say so.";
+}
+
+$("#question").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    $("#ask").requestSubmit();
+  }
+});
 
 $("#ask").addEventListener("submit", async (e) => {
   e.preventDefault();
   const question = $("#question").value.trim();
-  if (!question) return;
-  const answer = h("p", {}, "Thinking…");
-  $("#answers").prepend(h("div", { class: "card" }, h("p", {}, h("strong", {}, "You asked: "), question), answer));
+  if (!question || $("#question").disabled) return;
+  chatMessage("user", question);
   $("#question").value = "";
+  const pending = chatMessage("assistant", "Thinking…", { quiet: true });
   try {
-    answer.textContent = (await api(`/api/rooms/${room}/ask`, { method: "POST", json: { question } })).answer;
-    say(`Answer: ${answer.textContent}`);
+    const out = await api(`/api/rooms/${room}/ask`, { method: "POST", json: { question, history: chat.history.slice(-3) } });
+    pending.querySelector("p").textContent = out.answer;
+    pending.classList.toggle("quiet", !out.found);
+    if (out.found) chat.history.push({ question, answer: out.answer });
+    if (settings.get("speech.mode") === "voice" && !state.describing) speaker.speak(out.answer);
   } catch (err) {
-    answer.textContent = `Sorry, that failed: ${err.message}`;
-    say(answer.textContent, { assertive: true });
+    pending.querySelector("p").textContent = `Sorry, that failed: ${err.message}`;
+    say(`Sorry, that failed: ${err.message}`, { assertive: true });
   }
+  $("#chat-log").scrollTop = $("#chat-log").scrollHeight;
+  $("#question").focus();
 });
 
 function addTranscript(text) {
