@@ -1,4 +1,12 @@
 // Owner: Person 3. Small helpers shared by every page.
+if (!document.querySelector('link[rel="icon"]')) {
+  const icon = document.createElement("link");
+  icon.rel = "icon";
+  icon.type = "image/png";
+  icon.href = "/NarraAssist_Logo-removebg.png";
+  document.head.append(icon);
+}
+
 export const $ = (selector, root = document) => root.querySelector(selector);
 
 export function roomCode() {

@@ -123,6 +123,9 @@ main p, dialog p { max-width: 70ch; overflow-wrap: anywhere; }
 header { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: baseline; width: min(70rem, calc(100% - 2rem)); margin: 1rem auto 0; padding: 1.25rem; border: 2px solid var(--hero-border); border-radius: 1rem; background: var(--hero-bg); color: var(--hero-fg); }
 header > * { min-width: 0; overflow-wrap: anywhere; }
 header h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.01em; margin: 0; }
+.site-brand { display: inline-flex; align-items: center; gap: 0.6rem; color: inherit; text-decoration: none; }
+.site-brand img { display: block; width: 2rem; height: 2rem; object-fit: contain; }
+.site-brand h1 { margin: 0; }
 header > .muted { color: var(--hero-muted); }
 header code.room { padding: 0.1rem 0.6rem; border-radius: 0.5rem; background: var(--hero-chip); color: var(--hero-fg); }
 header :focus-visible { outline-color: var(--hero-focus); }
