@@ -7,7 +7,7 @@ import { MeetingAudio } from "./audio-engine.js";
 import { parseZoomLink, joinAsHelper, fakeHelper } from "./zoom-helper.js";
 import { earcons } from "./earcons.js";
 import { applyDisplaySettings, appearanceSettings, settings } from "./settings.js";
-import { Speaker, announce } from "./speech.js";
+import { Speaker, announce, addAnnounceDocument, removeAnnounceDocument } from "./speech.js";
 
 applyDisplaySettings();
 
@@ -259,7 +259,9 @@ function buildFloatingPlayer(pipWindow) {
   videoContainer.setAttribute("aria-label", "Shared Zoom tab video");
   const status = pipDocument.createElement("p");
   status.className = "pip-status";
-  status.setAttribute("role", "status");
+  // Not a live region: it changes every second during a description ("3 seconds behind"), and a screen
+  // reader would read each change over the slide. Mode changes are announced once, through say().
+  status.setAttribute("aria-live", "off");
   const controls = pipDocument.createElement("div");
   controls.className = "pip-controls";
   const describe = pipDocument.createElement("button");
@@ -365,12 +367,14 @@ function buildFloatingPlayer(pipWindow) {
     player.hidden = true;
     settingsPanel.hidden = false;
     pipDocument.body.replaceChildren(player, settingsPanel);
+    addAnnounceDocument(pipDocument); // replaceChildren dropped the announcement regions; put them back
     heading.focus();
   };
   settingsButton.addEventListener("click", showSettings);
   controls.append(describe, settingsButton);
   player.append(heading, videoContainer, status, controls);
   pipDocument.body.replaceChildren(player, settingsPanel);
+  addAnnounceDocument(pipDocument);
   pipDocument.addEventListener("keydown", (event) => {
     if (!event.altKey || !event.shiftKey) return;
     if (pipDocument.activeElement?.matches("input, textarea, select, [contenteditable='true']")) return;
@@ -384,6 +388,7 @@ function buildFloatingPlayer(pipWindow) {
   state.pipControls = { videoContainer, status, describe, showSettings };
   if (state.capture?.video) videoContainer.append(state.capture.video);
   pipWindow.addEventListener("pagehide", () => {
+    removeAnnounceDocument(pipDocument);
     if (state.pipWindow !== pipWindow) return;
     state.pipWindow = null;
     state.pipControls = null;
