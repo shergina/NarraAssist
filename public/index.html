@@ -15,16 +15,14 @@
       <h1>NarraAssist</h1>
     </a>
     <nav class="site-nav" aria-label="Page navigation">
-      <a href="#create-h">Start a room</a>
-      <a href="#join-h">Join a room</a>
       <details class="nav-dropdown">
-        <summary>Accessibility settings</summary>
+        <summary>Settings</summary>
         <div id="display-settings"></div>
       </details>
     </nav>
   </header>
   <main id="main-content" tabindex="-1">
-    <p>Follow a Zoom presentation without listening to the presenter and your screen reader at the same time.</p>
+    <p class="tagline">Follow a Zoom presentation without hearing the presenter and your screen reader at once.</p>
     <section aria-labelledby="create-h">
       <h2 id="create-h">Start a meeting room</h2>
       <p>One room per meeting. Open the listener link yourself and send the presenter link to the speaker.</p>
@@ -32,13 +30,16 @@
       <p id="room-status" class="muted" role="status" aria-live="polite" aria-atomic="true"></p>
       <div id="links" hidden>
         <p>Room code <code class="room" id="code"></code></p>
-        <p><a id="listener-link">Listener page</a></p>
-        <p><a id="presenter-link">Presenter page</a></p>
+        <div class="row">
+          <a id="listener-link" class="button primary">Open the listener page</a>
+          <a id="presenter-link" class="button">Open the presenter page</a>
+        </div>
+        <p>Send the presenter link to the speaker, or share the room code.</p>
       </div>
     </section>
     <section aria-labelledby="join-h">
       <h2 id="join-h">Join a room</h2>
-      <form id="join" class="row">
+      <form id="join" class="field-row">
         <label>Room code <input id="join-code" required autocomplete="off" autocapitalize="characters"></label>
         <button type="submit" value="listener" class="primary">Join as listener</button>
         <button type="submit" value="presenter">Join as presenter</button>

@@ -117,6 +117,8 @@
 :root[data-bold="on"] body { font-weight: 600; }
 :root[data-bold="on"] h1, :root[data-bold="on"] h2, :root[data-bold="on"] h3, :root[data-bold="on"] button, :root[data-bold="on"] .status { font-weight: 800; }
 * { box-sizing: border-box; }
+/* The hidden attribute always wins, even over display rules on buttons, rows and sections. */
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 1.125rem/var(--leading) var(--font); letter-spacing: var(--tracking); word-spacing: var(--word-gap); }
 header, main { max-width: 72rem; margin: 0 auto; padding: 1rem; }
 main p, dialog p { max-width: 70ch; overflow-wrap: anywhere; }
@@ -127,7 +129,7 @@ header h1 { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.01em; margi
 .site-brand img { display: block; width: 2rem; height: 2rem; object-fit: contain; }
 .site-brand h1 { margin: 0; }
 header > .muted { color: var(--hero-muted); }
-header code.room { padding: 0.1rem 0.6rem; border-radius: 0.5rem; background: var(--hero-chip); color: var(--hero-fg); }
+header code.room { padding: 0.1rem calc(0.6rem - 0.15em) 0.1rem 0.6rem; /* letter-spacing adds a gap after the last letter; trim it so the code sits centered */ border-radius: 0.5rem; background: var(--hero-chip); color: var(--hero-fg); }
 header :focus-visible { outline-color: var(--hero-focus); }
 .nav-dropdown[open] > div :focus-visible { outline-color: var(--focus); }
 .site-header { align-items: center; }
@@ -137,8 +139,6 @@ header :focus-visible { outline-color: var(--hero-focus); }
 .nav-dropdown { position: relative; min-width: 0; max-width: 100%; }
 .nav-dropdown > summary { list-style: none; }
 .nav-dropdown > summary::-webkit-details-marker { display: none; }
-.nav-dropdown > summary::after { content: "+"; margin-left: 0.5rem; text-decoration: none; }
-.nav-dropdown[open] > summary::after { content: "−"; }
 .nav-dropdown[open] > div { position: absolute; z-index: 5; top: calc(100% + 0.4rem); left: 0; width: min(24rem, calc(100vw - 2rem)); max-height: min(70vh, 36rem); overflow: auto; padding: 0.75rem; border: 2px solid var(--border); border-radius: 0.75rem; background: var(--raised); color: var(--fg); box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 25%); }
 .nav-dropdown .settings-group { margin: 0 0 0.75rem; padding: 0.5rem; }
 .nav-dropdown .settings-group legend { font-size: 1.1rem; }
@@ -152,10 +152,10 @@ h3 { font-size: 1.2rem; font-weight: 700; margin: 0.75rem 0 0.25rem; }
 .pre { white-space: pre-line; }
 .status { font-weight: 600; }
 button, input, select, textarea { letter-spacing: inherit; word-spacing: inherit; }
-button { max-width: 100%; overflow-wrap: anywhere; font: inherit; font-weight: 600; min-height: 2.75rem; padding: 0.5rem 1.1rem; border-radius: 0.75rem; border: 2px solid var(--accent); background: var(--raised); color: var(--accent-ink); cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease; }
-button:hover:not(:disabled) { background: var(--accent-soft); }
-button.primary { background: var(--accent); color: var(--accent-fg); }
-button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+button, a.button { text-decoration: none; display: inline-flex; align-items: center; max-width: 100%; overflow-wrap: anywhere; font: inherit; font-weight: 600; min-height: 2.75rem; padding: 0.5rem 1.1rem; border-radius: 0.75rem; border: 2px solid var(--accent); background: var(--raised); color: var(--accent-ink); cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease; }
+button:hover:not(:disabled), a.button:hover { background: var(--accent-soft); }
+button.primary, a.button.primary { background: var(--accent); color: var(--accent-fg); }
+button.primary:hover:not(:disabled), a.button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 button[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); }
 button:disabled { color: var(--muted); border-color: var(--border); background: var(--panel); cursor: not-allowed; }
 input, select, textarea { font: inherit; padding: 0.5rem 0.65rem; border: 2px solid var(--border); border-radius: 0.6rem; background: var(--raised); color: var(--fg); max-width: 100%; }
@@ -178,22 +178,24 @@ a { color: var(--accent); text-decoration: underline; text-underline-offset: 0.1
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
 .skip-link { position: absolute; z-index: 10; top: 0.5rem; left: 0.5rem; padding: 0.5rem 0.75rem; background: var(--raised); color: var(--fg); border: 2px solid var(--focus); border-radius: 0.5rem; transform: translateY(-200%); }
 .skip-link:focus { transform: translateY(0); }
-code.room { font-size: 1.25rem; font-weight: 700; letter-spacing: 0.15em; padding: 0.1rem 0.6rem; border-radius: 0.5rem; background: var(--accent-soft); color: var(--accent-ink); }
+code.room { font-size: 1.25rem; font-weight: 700; letter-spacing: 0.15em; padding: 0.1rem calc(0.6rem - 0.15em) 0.1rem 0.6rem; border-radius: 0.5rem; background: var(--accent-soft); color: var(--accent-ink); }
 details.dev { border-style: dashed; }
 dialog {
+  --dialog-pad: 1.25rem;
   width: min(42rem, calc(100vw - 2rem));
   max-height: min(90vh, 48rem);
   overflow-y: auto;
-  padding: 1.25rem;
+  padding: var(--dialog-pad);
   border: 2px solid var(--border);
   border-radius: 1rem;
   background: var(--raised);
   color: var(--fg);
 }
 dialog::backdrop { background: rgb(0 0 0 / 65%); }
-.settings-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
-.settings-heading h2 { margin-bottom: 0.25rem; }
-.settings-heading p { margin-top: 0; }
+.settings-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; position: sticky; top: calc(-1 * var(--dialog-pad)); z-index: 2; align-items: center; margin: calc(-1 * var(--dialog-pad)) calc(-1 * var(--dialog-pad)) 0.75rem; padding: 0.6rem var(--dialog-pad); background: var(--raised); border-bottom: 2px solid var(--line); }
+.settings-heading button { flex: none; white-space: nowrap; overflow-wrap: normal; }
+.settings-heading h2 { margin: 0; }
+#settings-description { margin: 0 0 0.75rem; }
 .settings-group { min-width: 0; margin: 1rem 0; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; }
 .settings-group legend { padding: 0 0.35rem; font-weight: 700; }
 .setting-toggle { display: flex; flex-direction: row; align-items: center; gap: 0.75rem; min-height: 2.75rem; }
@@ -221,9 +223,7 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
   .nav-dropdown > summary { justify-content: center; }
   .nav-dropdown[open] { flex-basis: 100%; }
   .nav-dropdown[open] > div { position: static; width: auto; max-height: none; margin-top: 0.5rem; }
-  .settings-heading { flex-direction: column-reverse; }
-  .settings-heading button { align-self: flex-end; }
-  .settings-heading h2 { margin-top: 0.5rem; }
+  .settings-heading h2 { font-size: 1.25rem; }
 }
 @media (min-width: 32.001rem) and (max-width: 75rem) {
   .site-nav { flex-wrap: wrap; justify-content: flex-start; }
@@ -237,3 +237,40 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
   button, input, select, textarea { border-color: ButtonText; }
   header, section, .card { border: 2px solid CanvasText; }
 }
+
+/* Ask about the slides: a small chat that scrolls on its own, under the slide list. */
+.chat { display: flex; flex-direction: column; border: 2px solid var(--line); border-radius: 1rem; background: var(--bg); overflow: hidden; }
+.chat-log { height: 20rem; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; scroll-behavior: smooth; }
+.chat-log:empty::before { content: "No questions yet."; color: var(--muted); }
+.msg { max-width: 85%; padding: 0.6rem 0.9rem; border-radius: 1rem; border: 2px solid transparent; }
+.msg p { margin: 0; white-space: pre-line; }
+.msg.user { align-self: flex-end; background: var(--accent); color: var(--accent-fg); border-bottom-right-radius: 0.25rem; }
+.msg.assistant { align-self: flex-start; background: var(--raised); color: var(--fg); border-color: var(--line); border-bottom-left-radius: 0.25rem; }
+.msg.assistant.quiet { color: var(--muted); font-style: italic; }
+.chat-form { display: flex; gap: 0.5rem; align-items: flex-end; padding: 0.75rem; border-top: 2px solid var(--line); background: var(--raised); }
+.chat-form textarea { flex: 1; min-height: 2.75rem; resize: vertical; }
+:root[data-contrast="high"] .msg.user { background: var(--accent); color: var(--accent-fg); }
+:root[data-contrast="high"] .msg.assistant { border-color: var(--fg); }
+
+/* Setup as numbered steps, and forms whose input and button line up. */
+.steps { margin: 1rem 0 0; padding-left: 1.5rem; display: grid; gap: 1.25rem; max-width: 60ch; }
+.steps > li { padding-left: 0.25rem; font-weight: 400; }
+.steps > li > button { display: block; margin-top: 0.6rem; }
+#speaker-names { margin-top: 1.5rem; }
+#speaker-names h3 { margin: 0 0 0.25rem; }
+#speaker-names p { margin: 0 0 0.6rem; }
+.field-row > label.grow-2 { flex: 2 1 20rem; }
+/* No gray text: this app is for people with low vision. Secondary text keeps its class but not its color. */
+.muted { color: var(--fg); }
+.field-row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
+.field-row > label { display: flex; flex-direction: column; gap: 0.3rem; flex: 1 1 16rem; min-width: 0; }
+.field-row > label > input { width: 100%; min-height: 2.75rem; }
+.field-row > button { min-height: 2.75rem; }
+
+/* Breadcrumb in the page header: the product name links home. */
+.crumb { flex: 1 0 100%; display: flex; align-items: center; gap: 0.4rem; margin: 0 0 -0.25rem; font-weight: 600; }
+.crumb a { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; border-radius: 0.25rem; }
+.crumb .site-brand { text-decoration: none; }
+.crumb-chevron { width: 0.9em; height: 0.9em; opacity: 0.75; flex: none; }
+
+.tagline { max-width: none; font-size: 1.15rem; }

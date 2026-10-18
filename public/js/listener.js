@@ -10,15 +10,16 @@ import { applyDisplaySettings, appearanceSettings, settings } from "./settings.j
 import { Speaker, announce } from "./speech.js";
 
 applyDisplaySettings();
-$("#display-settings").replaceChildren(
-  h("p", { class: "muted" }, "These preferences are saved in this browser."),
-  appearanceSettings(),
-);
 
 const room = roomCode();
+
+window.addEventListener("beforeunload", (e) => {
+  if (state.capture) e.preventDefault(); // Chrome shows its own "Leave site?" prompt
+});
 const speaker = new Speaker();
 const state = {
   slide: null,
+  nothingShared: false, // the server said the shared screen is empty
   slides: [],
   deck: null,
   summary: "",
@@ -84,6 +85,10 @@ function onMessage(msg) {
       break;
     case "slide":
       state.slide = msg.slide;
+      if (!msg.slide) {
+        state.nothingShared = true;
+        say("Nothing is being shared right now.");
+      }
       renderSlide();
       renderFloatingVideo();
       // The knock for screen changes already played locally. Presenter-driven changes knock here.
@@ -107,11 +112,16 @@ function onMessage(msg) {
 async function onLocalSlideChange({ at, frame }) {
   earcons.slideChanged();
   try {
-    await api(`/api/rooms/${room}/frame`, {
+    const out = await api(`/api/rooms/${room}/frame`, {
       method: "POST",
       body: frame,
       headers: { "Content-Type": "image/jpeg", "X-Captured-At": String(at) },
     });
+    state.nothingShared = out.reason === "nothing-shared";
+    if (out.slide && !state.slide) {
+      state.slide = out.slide; // a dropped socket must never leave the page without the slide
+      renderSlide();
+    } else if (!out.slide) renderSlide();
   } catch (err) {
     console.warn("Frame check failed:", err.message);
     say("Couldn't send the slide for description. Check your connection and try again.", { assertive: true });
@@ -177,23 +187,25 @@ function wireAudio(audio) {
   renderMode();
 }
 
+function describeLabel() {
+  return state.describing ? "Stop and catch up" : "Describe slide";
+}
+
 function renderFloatingVideo() {
   const button = $("#floating-video");
   const supported = Boolean(window.documentPictureInPicture?.requestWindow);
   const active = Boolean(state.pipWindow && !state.pipWindow.closed);
   button.disabled = !supported || (!state.capture && !active);
   button.setAttribute("aria-pressed", String(active));
-  button.textContent = active ? "Close picture-in-picture" : "Open picture-in-picture";
+  button.textContent = active ? "Close floating player" : "Open floating player";
   $("#floating-video-status").textContent = !supported
-    ? "Interactive floating player is not supported by this browser."
+    ? "The floating player needs Chrome."
     : active
-      ? "Floating meeting player is open."
-      : state.capture
-        ? "Floating meeting player is closed."
-        : "Connect to a Zoom tab to use the floating meeting player.";
+      ? "The floating player is open. It shows the Zoom video with Describe and the shortcuts, on top of other windows."
+      : "The floating player shows the Zoom video with Describe and the shortcuts, on top of other windows.";
   if (state.pipControls) {
     state.pipControls.describe.disabled = !state.slide;
-    state.pipControls.describe.textContent = state.describing ? "Back to presenter" : "Describe slide";
+    state.pipControls.describe.textContent = describeLabel();
     state.pipControls.status.textContent = $("#mode").textContent;
   }
 }
@@ -434,7 +446,7 @@ $("#connect").addEventListener("click", async () => {
   if (state.pipControls) state.pipControls.videoContainer.append(state.capture.video);
   else $("#capture-preview").replaceChildren(state.capture.video);
   renderFloatingVideo();
-  say("Connected to the meeting.");
+  say("Connected. Live controls are available: Describe slide, Jump to live, and the floating player.");
   await floatingPlayerRequest;
   const audio = new MeetingAudio(ctx, state.capture.stream, { maxRate: settings.get("catchup.maxRate") });
   wireAudio(audio);
@@ -454,8 +466,8 @@ async function disconnect() {
   Object.assign(state, { capture: null, audio: null, stopSlides: null });
   $("#connect").textContent = "Connect to Zoom tab";
   $("#mode").textContent = "Not connected to Zoom yet.";
-  renderFloatingVideo();
-  say("Disconnected from the meeting.");
+  renderMode();
+  say("Disconnected from the meeting. Live controls are hidden until you connect again.");
 }
 
 $("#zoom").addEventListener("submit", async (e) => {
@@ -463,7 +475,7 @@ $("#zoom").addEventListener("submit", async (e) => {
   const meeting = parseZoomLink($("#zoom-link").value);
   if (!meeting) return say("That doesn't look like a Zoom link or meeting ID.", { assertive: true });
   try {
-    state.helper = await joinAsHelper({ ...meeting, container: $("#zoom-container") });
+    state.helper = await joinAsHelper({ ...meeting, userName: $("#listener-name").value.trim() || undefined, container: $("#zoom-container") });
     state.helper.addEventListener("speaker", (ev) => onSpeaker(ev.detail));
     say("Speaker names are on.");
   } catch (err) {
@@ -482,7 +494,7 @@ function slideSpeech(slide, { full = false } = {}) {
 }
 
 function describeSlide(slide = state.slide, { full = false } = {}) {
-  if (!slide) return say("No slide yet.");
+  if (!slide) return say(emptySlideText());
   speaker.cancel();
   state.describing = true;
   state.manualDescriptionEnd = false;
@@ -521,10 +533,22 @@ function requestDescription(note = "") {
 }
 
 function renderMode() {
+  renderChatState();
   const audio = state.audio;
   $("#screen-reader-help").hidden = !state.manualDescriptionEnd;
-  $("#describe").textContent = state.describing ? "Back to presenter" : "Describe slide";
-  $("#live").disabled = !audio || audio.mode === "live";
+  // Live controls exist only while connected. "Stop and catch up" plays what was missed; "Jump to live" drops it.
+  const connected = Boolean(audio);
+  $("#live-controls").hidden = !connected;
+  $("#slide-section").hidden = !connected;
+  if (!connected) state.nothingShared = false;
+  $("#speaker-names").hidden = !connected;
+  $("#request").hidden = !connected;
+  $("#setup-steps").hidden = connected && Boolean(state.capture);
+  $("#describe").hidden = !connected;
+  if (!state.slide) renderSlide();
+  $("#describe").textContent = describeLabel();
+  $("#live").hidden = !connected || audio.mode === "live";
+  $("#floating-video-status").hidden = !connected;
   if (audio) {
     const behind = Math.round(audio.secondsBehind);
     $("#mode").textContent = {
@@ -548,8 +572,8 @@ $("#request").addEventListener("submit", (e) => {
 // ---------- keyboard shortcuts (keep in sync with PRODUCT.md) ----------
 
 const SHORTCUTS = [
-  ["KeyD", "Describe the slide, or go back to the presenter", toggleDescribe],
-  ["KeyL", "Skip straight to live", skipToLive],
+  ["KeyD", "Describe the slide, or stop the description and catch up on what you missed", () => (state.audio ? toggleDescribe() : say("Connect to the Zoom tab first."))],
+  ["KeyL", "Jump to live, skipping what you missed", () => (state.audio ? skipToLive() : say("Connect to the Zoom tab first."))],
   ["KeyR", "Ask the presenter to describe something", () => requestDescription()],
   ["KeyA", "Repeat the last alert", () => say(state.lastAlert || "No alerts yet.")],
   ["KeyW", "Say who is speaking", () => {
@@ -559,7 +583,7 @@ const SHORTCUTS = [
   ["KeyS", "Say the current slide", () => say(slideLabel(state.slide))],
   ["KeyF", "Read the full slide text, even when summaries are on", () => describeSlide(state.slide, { full: true })],
   ["KeyQ", "Ask a question about the slides", () => $("#question").focus()],
-  ["KeyV", "Show or hide the floating Zoom video", toggleFloatingVideo],
+  ["KeyV", "Open or close the floating player", () => (state.audio ? toggleFloatingVideo() : say("Connect to the Zoom tab first."))],
   ["KeyH", "Hear all shortcuts", () => say(SHORTCUTS.map(([code, label]) => `Alt Shift ${code.slice(3)}: ${label}.`).join(" "))],
 ];
 
@@ -621,6 +645,7 @@ function renderSettings() {
       },
         options.map(([value, text]) => h("option", { value, selected: String(settings.get(key)) === String(value) }, text))));
   $("#settings").replaceChildren(
+    appearanceSettings(),
     ...groups,
     h("fieldset", { class: "settings-group" },
       h("legend", {}, "Speech and catch-up"),
@@ -663,8 +688,13 @@ function slideBlock(slide, headingTag) {
     h("button", { onclick: () => describeSlide(slide, { full: true }) }, "Read full text"));
 }
 
+function emptySlideText() {
+  if (!state.audio) return "Connect to the Zoom tab to follow the current slide.";
+  return state.nothingShared ? "Nothing is being shared right now." : "Waiting for the first slide.";
+}
+
 function renderSlide() {
-  $("#current").replaceChildren(state.slide ? slideBlock(state.slide, "h3") : h("p", { class: "muted" }, "No slide yet."));
+  $("#current").replaceChildren(state.slide ? slideBlock(state.slide, "h3") : h("p", {}, emptySlideText()));
 }
 
 function renderDeck() {
@@ -672,24 +702,69 @@ function renderDeck() {
   $("#deck-status").textContent = !d || d.status === "none"
     ? "No slides uploaded. That's fine: slides are described from the shared screen."
     : { processing: `Preparing ${d.fileName}…`, ready: `${d.fileName}: ${d.slideCount} slides.`, error: `Couldn't read the slides: ${d.error}` }[d.status];
+  const hasDeck = state.slides.length > 0;
+  $("#deck-content").hidden = !hasDeck;
+  if (!d || d.status === "none") $("#deck-status").textContent = "The presenter hasn't uploaded slides yet. The slides and questions appear here when they do.";
   $("#summary").replaceChildren(...(state.summary ? [h("h3", {}, "Summary"), h("p", {}, state.summary)] : []));
   $("#slides").replaceChildren(...state.slides.map((s) => slideBlock(s, "h4")));
+  renderChatState();
 }
+
+// ---------- ask about the slides (before the meeting) ----------
+// A small chat under the slide list. Answers come from the uploaded deck only. The server gets the last
+// three exchanges so follow-ups work. Reading an answer never touches the meeting audio.
+
+const chat = { history: [] };
+
+function chatMessage(role, text, { quiet = false } = {}) {
+  const who = role === "user" ? "You" : "Answer";
+  const node = h("div", { class: `msg ${role}${quiet ? " quiet" : ""}` },
+    h("span", { class: "sr-only" }, `${who}: `),
+    h("p", {}, text));
+  $("#chat-log").append(node);
+  $("#chat-log").scrollTop = $("#chat-log").scrollHeight;
+  return node;
+}
+
+function renderChatState() {
+  const box = $("#question");
+  const button = $("#ask button");
+  const hasDeck = state.slides.length > 0;
+  const live = Boolean(state.capture);
+  box.disabled = button.disabled = !hasDeck || live;
+  $("#chat-note").textContent = !hasDeck
+    ? "Questions work once the presenter has uploaded the slides."
+    : live
+      ? "Available before the talk. Disconnect from the Zoom tab to ask questions."
+      : "Answers come only from the uploaded slides. If something isn't in them, it will say so.";
+}
+
+$("#question").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    $("#ask").requestSubmit();
+  }
+});
 
 $("#ask").addEventListener("submit", async (e) => {
   e.preventDefault();
   const question = $("#question").value.trim();
-  if (!question) return;
-  const answer = h("p", {}, "Thinking…");
-  $("#answers").prepend(h("div", { class: "card" }, h("p", {}, h("strong", {}, "You asked: "), question), answer));
+  if (!question || $("#question").disabled) return;
+  chatMessage("user", question);
   $("#question").value = "";
+  const pending = chatMessage("assistant", "Thinking…", { quiet: true });
   try {
-    answer.textContent = (await api(`/api/rooms/${room}/ask`, { method: "POST", json: { question } })).answer;
-    say(`Answer: ${answer.textContent}`);
+    const out = await api(`/api/rooms/${room}/ask`, { method: "POST", json: { question, history: chat.history.slice(-3) } });
+    pending.querySelector("p").textContent = out.answer;
+    pending.classList.toggle("quiet", !out.found);
+    if (out.found) chat.history.push({ question, answer: out.answer });
+    if (settings.get("speech.mode") === "voice" && !state.describing) speaker.speak(out.answer);
   } catch (err) {
-    answer.textContent = `Sorry, that failed: ${err.message}`;
-    say(answer.textContent, { assertive: true });
+    pending.querySelector("p").textContent = `Sorry, that failed: ${err.message}`;
+    say(`Sorry, that failed: ${err.message}`, { assertive: true });
   }
+  $("#chat-log").scrollTop = $("#chat-log").scrollHeight;
+  $("#question").focus();
 });
 
 function addTranscript(text) {

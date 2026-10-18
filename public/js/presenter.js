@@ -37,6 +37,7 @@ function onMessage(msg) {
       state.current = msg.state.current ?? null;
       renderDeck(msg.state.deck);
       $("#transcript").replaceChildren(...(msg.state.transcript || []).map((t) => h("p", {}, t.text)));
+      $("#transcript-section").hidden = !(msg.state.transcript || []).length;
       break;
     case "deck":
       if (msg.slides) state.slides = msg.slides;
@@ -70,6 +71,7 @@ function onMessage(msg) {
       removeCard(msg.id);
       break;
     case "transcript":
+      $("#transcript-section").hidden = false;
       $("#transcript").append(h("p", {}, msg.entry.text));
       $("#transcript").scrollTop = $("#transcript").scrollHeight;
       break;
@@ -111,12 +113,21 @@ function removeCard(id) {
   $("#no-alerts").hidden = cards.size > 0;
 }
 
+function renderNotifications() {
+  const granted = "Notification" in window && Notification.permission === "granted";
+  $("#notify").hidden = granted;
+  $("#notify-status").hidden = !granted;
+}
+renderNotifications();
+
 $("#notify").addEventListener("click", async () => {
   if (!("Notification" in window)) return announce("This browser doesn't support notifications.");
   const result = await Notification.requestPermission();
-  $("#notify").textContent = result === "granted" ? "Notifications on" : "Notifications blocked";
+  renderNotifications();
+  if (result !== "granted") $("#notify").textContent = "Notifications blocked in this browser";
 });
 
+$("#upload").addEventListener("click", () => $("#deck").click());
 $("#deck").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -131,13 +142,13 @@ $("#deck").addEventListener("change", async (e) => {
 
 function renderDeck(deck = { status: "none" }) {
   $("#deck-status").textContent = {
-    none: "Optional: upload your deck as a PDF so attendees can review it.",
+    none: "Optional: upload your deck so attendees can review it before the talk.",
     processing: `Preparing ${deck.fileName}…`,
     ready: `${deck.fileName}: ${deck.slideCount} slides ready for attendees.`,
     error: `Couldn't read the slides: ${deck.error}`,
   }[deck.status] ?? "";
   $("#jump").replaceChildren(...state.slides.map((s) => h("option", { value: s.number }, slideLabel(s))));
-  $("#jump").disabled = $("#prev").disabled = $("#next").disabled = state.slides.length === 0;
+  $("#slides-section").hidden = state.slides.length === 0;
   renderCurrent();
 }
 
@@ -153,7 +164,7 @@ function showPreview(file) {
   previewUrl = URL.createObjectURL(file);
   shownPage = null;
   browsing = false;
-  for (const id of ["#preview", "#preview-status", "#preview-controls", "#open-preview"]) $(id).hidden = false;
+  for (const id of ["#preview-section", "#preview", "#preview-status", "#preview-controls", "#open-preview"]) $(id).hidden = false;
   updatePreview();
 }
 
@@ -196,7 +207,7 @@ function browse(delta) {
 }
 
 function renderCurrent() {
-  $("#current").textContent = state.current ? slideLabel(state.current) : "Not set";
+  $("#current").textContent = state.current ? slideLabel(state.current) : "not set";
   if (state.current?.number) $("#jump").value = state.current.number;
   updatePreview();
 }
