@@ -67,15 +67,19 @@
       <h2 id="deck-h">Slides and questions</h2>
       <p id="deck-status" class="muted" aria-live="off"></p>
       <div id="summary"></div>
-      <form id="ask">
-        <label style="width:100%">Ask about the slides or the talk
-          <textarea id="question" required></textarea>
-        </label>
-        <div class="row"><button type="submit">Ask</button></div>
-      </form>
-      <div id="answers" role="region" aria-label="Answers" aria-live="off"></div>
       <h3>All slides</h3>
       <div id="slides"></div>
+
+      <h3 id="chat-h">Ask about the slides</h3>
+      <p id="chat-note" class="muted">Answers come only from the uploaded slides. If something isn't in them, it will say so.</p>
+      <div class="chat" aria-labelledby="chat-h">
+        <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-relevant="additions" tabindex="0"></div>
+        <form id="ask" class="chat-form">
+          <label class="sr-only" for="question">Your question</label>
+          <textarea id="question" rows="2" placeholder="Ask a question about the slides…" required></textarea>
+          <button type="submit" class="primary">Send</button>
+        </form>
+      </div>
     </section>
 
     <section aria-labelledby="keys-h">
