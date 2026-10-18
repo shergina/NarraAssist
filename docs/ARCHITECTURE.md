@@ -18,7 +18,7 @@ Zoom web client tab ──(Chrome tab capture: video + audio)──► Listener 
                                                      Presenter page (phone or second screen)
 ```
 
-Rooms are in memory. A server restart clears their contents (slides, transcript, pending cues), but any code is re-created on first use, so pages that are already open keep working after a restart. Codes are normalized: letters and digits only, case-insensitive, 4 to 24 long, so a pasted Zoom meeting ID like "884 076 2216" becomes room 8840762216 rather than an error. The dev server restarts on every saved file.
+Rooms are in memory, and each uploaded deck (the PDF plus its descriptions) is also saved under `data/` and loaded back on start, so a deck uploaded the day before survives restarts. Transcript and pending cues are not saved. Any code is re-created on first use, so pages that are already open keep working after a restart. Codes are normalized: letters and digits only, case-insensitive, 4 to 24 long, so a pasted Zoom meeting ID like "884 076 2216" becomes room 8840762216 rather than an error. The dev server restarts on every saved file.
 
 ## Shared objects
 
@@ -50,8 +50,8 @@ Rooms are in memory. A server restart clears their contents (slides, transcript,
 | `GET /api/rooms/:id` | | room state: `{ id, deck, summary, slides, current, transcript }` |
 | `POST /api/rooms/:id/deck` | PDF bytes, `Content-Type: application/pdf`, `X-File-Name` | `202 { deck }`, then a `deck` socket message when done |
 | `GET /api/rooms/:id/deck.pdf` | | the PDF |
-| `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, reason, slide }`. `reason` is `"described"`, `"nothing-shared"` (no content on screen; once nothing has been shared for 8 seconds the current slide is cleared and a `slide` message with `slide: null` is broadcast) or `"no-match"` (content on screen but not a page of the deck). Takes about 2.5 s. Described at most once every 3 s per room; the newest frame wins |
-| `POST /api/rooms/:id/ask` | `{ question }` | `{ answer }` |
+| `POST /api/rooms/:id/frame` | JPEG bytes of the shared area, header `X-Captured-At` | `{ changed, reason, slide }`. `reason` is `"described"`, `"nothing-shared"` (no content on screen; once nothing has been shared for 8 seconds the current slide is cleared and a `slide` message with `slide: null` is broadcast) or `"no-match"` (content on screen but not a page of the deck; the screenshot is described instead, so `slide` is still filled). Takes about 2.5 s. Described at most once every 3 s per room; the newest frame wins |
+| `POST /api/rooms/:id/ask` | `{ question, history?: [{ question, answer }] }` (the page sends its last 3 pairs for follow-ups) | `{ found, answer, slides: [numbers] }`. Answers come from the uploaded deck only; 409 if no deck. When `found` is false, `answer` is "That isn't covered in the slides." The server rejects an answer that cites no real slide. Meant for before the meeting; the page decides when to show the box |
 
 | `POST /api/zoom/signature` | `{ meetingNumber }` | `{ signature, sdkKey }`. Person 4. Answers 501 until built |
 | `POST /api/rooms/:id/dev/transcript` | `{ text }` | Development only. Adds a transcript line and runs the cue check immediately |
@@ -199,11 +199,22 @@ Person 3 implements these rules in `listener.js`.
 - **Slide changed.** On `watchSlides` `onChange`, play the knock and post the frame to `/api/rooms/:id/frame`. Use the `slide` in the response to update the current slide right away, so a dropped socket can never leave the page reading an old slide; the `slide` socket message is for changes made elsewhere (the presenter's controls). If the response's `reason` is `"nothing-shared"`, or a `slide` message arrives with `slide: null`, show and announce "Nothing is being shared right now", and make Describe say the same. A `slide` message with `source: "screen"` updates the content silently, since the knock already played. A `slide` message with `source: "presenter"` plays the knock and updates the content.
 - **During a description.** Earcons still play. Words wait in a queue and play when the description ends, or can be heard with Alt+Shift+A.
 - **Speaker names.** Keep a list of `{ name, at }` from the Zoom helper. While live, announce a name as it arrives. During a description, announce nothing. During catch-up, announce each name when `audio.meetingTime` reaches its `at`. When playback resumes after a description, first announce the latest speaker whose `at` is at or before `audio.meetingTime`. Never announce the same name twice in a row.
-- **Describe.** With `describe.mode` "full" (the default), speak `overview`. With "summary", speak `summary`. A separate shortcut always reads the full `overview`, so the exact words are never more than one key away.
+- **Describe.** With `describe.mode` "full" (the default), speak `overview`. With "summary", speak `summary`. Alt+Shift+F always reads the full `overview`, so the exact words are never more than one key away. The review list's "Read aloud" follows the setting and "Read full text" ignores it.
 - **Mute.** Alt+Shift+M calls `zoom.setMuted` and announces "Muted" or "Unmuted" from the `muted` event, so a host muting the listener is announced too. If the listener has not joined through the SDK, announce "Switch to the Zoom tab to unmute" instead.
 - **Floating video.** When `video.float` is on, after capture starts the captured Zoom video is shown picture-in-picture (`video.requestPictureInPicture()`, which needs the user's click, so it runs from the Connect button). A shortcut toggles it. This is a visual convenience for low-vision listeners; it changes nothing about audio or focus.
 - **Presenter quiet.** Play the falling tone. Queue the words if a description is playing.
 - **Caught up.** Play the rising sweep.
+
+## Slide review before the meeting
+
+Person 3 builds this on the listener page, with Saanvi's design applied on top. It works whenever a deck has been uploaded, before or during the meeting, and it never touches the meeting audio.
+
+- The "All slides" list is a single focusable list. Up and Down (or Left and Right) move between slides; Home and End jump to the first and last. Moving announces "Slide 4 of 11: Three Pillars".
+- In built-in voice mode, landing on a slide reads it after a 400 ms pause, so arrowing through the deck quickly doesn't start a reading per slide. Enter or Space reads the current slide again. Escape stops reading.
+- In screen-reader mode nothing is spoken by us: the slide's text, visuals and summary are in the page as text, and the user's screen reader reads them as they move.
+- What is read follows the same rules as a live description: the title is announced, then `overview`, or `summary` when the summary setting is on. Starting a new reading cancels the old one (the Speaker already does this).
+- The current review slide is separate from the live slide. Reviewing never calls `hold()` on the audio engine. If the meeting is live, the live status line stays as it is.
+- The deck's spoken summary gets its own "Read deck summary" button and appears above the list.
 
 ## Mock mode and developer tools
 

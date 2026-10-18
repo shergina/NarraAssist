@@ -2,6 +2,20 @@
 
 Owner: Person 4. Fill this in as features land. Target length: three minutes.
 
+## One shared server
+
+Rooms live inside one running server, so for team tests and the demo everyone must use the same one. The demo laptop runs the server and a Cloudflare tunnel, which gives it a public https address (capture and the floating window need https or localhost):
+
+```bash
+npm run dev
+```
+
+```bash
+cloudflared tunnel --url http://localhost:3000
+```
+
+The tunnel prints an address ending in `trycloudflare.com`. Everyone, including the presenter's phone, uses that address. It changes each time the tunnel starts, so start it once before judging and put the address in the script. The laptop must stay awake and plugged in. Decks are saved under `data/`, so a restart doesn't lose the upload. Teammates keep using localhost for their own building.
+
 ## Setup before walking up
 
 - Server running, room created, presenter page open on a phone with notifications on.

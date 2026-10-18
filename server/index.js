@@ -7,7 +7,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as gemini from "./gemini.js";
 import { HttpError } from "./errors.js";
-import { createRoom, getRoom, publicState, broadcast, setCurrentSlide, slideByNumber, addTranscript } from "./rooms.js";
+import { createRoom, getRoom, publicState, broadcast, setCurrentSlide, slideByNumber, addTranscript, restoreSavedRooms } from "./rooms.js";
+import { saveDeck } from "./store.js";
 import { attachSockets } from "./sockets.js";
 import { maybeCheckCues } from "./cues.js";
 import { zoomRouter } from "./zoom.js";
@@ -44,6 +45,7 @@ app.post("/api/rooms/:id/deck", express.raw({ type: "application/pdf", limit: "2
     const out = await gemini.processDeck(room.pdf);
     Object.assign(room, { slides: out.slides, summary: out.summary });
     room.deck = { ...room.deck, status: "ready", slideCount: out.slides.length };
+    saveDeck(room);
   } catch (err) {
     room.deck = { ...room.deck, status: "error", error: err.message };
   }
@@ -66,12 +68,14 @@ app.post("/api/rooms/:id/frame", express.raw({ type: "image/jpeg", limit: "8mb" 
   let reason = "described";
   if (room.slides.length) {
     const match = await gemini.matchSlide(req.body, room.slides);
-    if (match.slideNumber > 0 && match.confidence >= 0.5) slide = slideByNumber(room, match.slideNumber);
-    else reason = "no-match";
-  } else {
+    if (match.slideNumber > 0 && match.confidence >= 0.6) slide = slideByNumber(room, match.slideNumber);
+  }
+  if (!slide) {
+    // No deck, or the screen isn't one of its pages (edited slide, a demo, a website): describe the screenshot itself.
     const d = await gemini.describeFrame(req.body);
     if (d.isSharedContent) slide = { number: d.slideNumber || null, title: d.title, text: d.text, visuals: d.visuals, overview: d.overview, summary: d.summary };
     else reason = "nothing-shared";
+    if (slide && room.slides.length) reason = "no-match";
   }
   // Slide detection fires a couple of empty frames while a slide change settles, so an empty frame means
   // nothing on its own. Clear the slide only once nothing has been shared for a while.
@@ -101,12 +105,23 @@ function saveFrame(room, jpeg, reason) {
   }
 }
 
+// Questions are answered from the uploaded deck only. The server checks the model's citations: an answer that
+// claims to be found but points at no real slide is replaced by "not in the slides", so a bluff has nowhere to point.
+const NOT_IN_SLIDES = "That isn't covered in the slides.";
 app.post("/api/rooms/:id/ask", async (req, res) => {
   const room = getRoom(req.params.id);
-  const question = String(req.body?.question || "").trim();
+  const question = String(req.body?.question || "").trim().slice(0, 500);
   if (!question) throw new HttpError(400, "Ask a question.");
-  const transcript = room.transcript.slice(-15).map((t) => t.text).join(" ");
-  res.json({ answer: await gemini.answerQuestion({ question, pdf: room.pdf, slide: room.current, transcript }) });
+  if (!room.slides.length) throw new HttpError(409, "No slides have been uploaded yet. Ask the presenter to upload them first.");
+  const history = Array.isArray(req.body?.history)
+    ? req.body.history.slice(-3).map((h) => ({ question: String(h.question || "").slice(0, 500), answer: String(h.answer || "").slice(0, 1000) }))
+    : [];
+  const out = await gemini.answerQuestion({ question, slides: room.slides, history });
+  const valid = new Set(room.slides.map((s) => s.number));
+  const cited = (out.slideNumbers || []).filter((n) => valid.has(n));
+  const found = Boolean(out.found && out.answer?.trim() && cited.length);
+  if (out.found && !found) console.log(`[ask] ${room.id} answer rejected: no valid slide cited for "${question.slice(0, 60)}"`);
+  res.json({ found, answer: found ? out.answer.trim() : NOT_IN_SLIDES, slides: found ? cited : [] });
 });
 
 // Development only: add a transcript line and run the cue check now, to test nudges without audio.
@@ -123,6 +138,7 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: err.message });
 });
 
+restoreSavedRooms();
 const server = createServer(app);
 attachSockets(server);
 server.listen(PORT, () => {

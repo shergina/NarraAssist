@@ -1,7 +1,9 @@
-// Owner: Person 1. One room per meeting, kept in memory. A server restart clears their contents, but any
-// well-formed code is re-created on first use, so open pages survive a restart (the dev server restarts on every save).
+// Owner: Person 1. One room per meeting, kept in memory. Uploaded decks are also saved to disk (store.js) and
+// loaded back on start, so a deck uploaded the day before survives restarts. Any well-formed code is re-created
+// on first use, so open pages survive a restart too (the dev server restarts on every save).
 import { randomInt } from "node:crypto";
 import { HttpError } from "./errors.js";
+import { loadDeck, savedRoomIds } from "./store.js";
 
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const rooms = new Map();
@@ -29,8 +31,17 @@ export function createRoom(wanted) {
     pending: new Map(),
     cue: { lastCheckAt: 0, lastNudgeAt: 0 },
   };
+  const saved = loadDeck(id);
+  if (saved) Object.assign(room, saved);
   rooms.set(id, room);
   return room;
+}
+
+// Called once at start: bring back every room that has a saved deck.
+export function restoreSavedRooms() {
+  const ids = savedRoomIds();
+  for (const id of ids) createRoom(id);
+  if (ids.length) console.log(`[store] restored ${ids.length} room(s) with saved decks: ${ids.join(", ")}`);
 }
 
 // Unknown but well-formed codes are created on the spot, so a page that outlives a server restart keeps working.

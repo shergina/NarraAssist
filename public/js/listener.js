@@ -239,7 +239,7 @@ function buildFloatingPlayer(pipWindow) {
   const player = pipDocument.createElement("main");
   player.className = "pip-player";
   const heading = pipDocument.createElement("h1");
-  heading.textContent = "ZoomInSight meeting";
+  heading.textContent = "NarraAssist meeting";
   const videoContainer = pipDocument.createElement("div");
   videoContainer.className = "pip-video";
   videoContainer.setAttribute("aria-label", "Shared Zoom tab video");
@@ -473,17 +473,21 @@ $("#zoom").addEventListener("submit", async (e) => {
 
 // ---------- describe, catch up, go live ----------
 
-function slideSpeech(slide) {
-  return [`${slideLabel(slide)}.`, slide.overview || slide.text].filter(Boolean).join(" ");
+// What is spoken for a slide: the title, then the full text (default) or the short summary, per the
+// "describe.mode" setting. full: true forces the full text, for the "read the full slide" shortcut.
+function slideSpeech(slide, { full = false } = {}) {
+  const useSummary = !full && settings.get("describe.mode") === "summary" && slide.summary;
+  const body = useSummary ? slide.summary : slide.overview || slide.text;
+  return [`${slideLabel(slide)}.`, body].filter(Boolean).join(" ");
 }
 
-function describeSlide(slide = state.slide) {
+function describeSlide(slide = state.slide, { full = false } = {}) {
   if (!slide) return say("No slide yet.");
   speaker.cancel();
   state.describing = true;
   state.manualDescriptionEnd = false;
   state.audio?.hold();
-  state.manualDescriptionEnd = !speaker.speak(slideSpeech(slide), {
+  state.manualDescriptionEnd = !speaker.speak(slideSpeech(slide, { full }), {
     onEnd: () => state.describing && stopDescribing(),
   });
   renderMode();
@@ -553,6 +557,7 @@ const SHORTCUTS = [
     say(name ? `${name} is speaking.` : "No speaker yet.");
   }],
   ["KeyS", "Say the current slide", () => say(slideLabel(state.slide))],
+  ["KeyF", "Read the full slide text, even when summaries are on", () => describeSlide(state.slide, { full: true })],
   ["KeyQ", "Ask a question about the slides", () => $("#question").focus()],
   ["KeyV", "Show or hide the floating Zoom video", toggleFloatingVideo],
   ["KeyH", "Hear all shortcuts", () => say(SHORTCUTS.map(([code, label]) => `Alt Shift ${code.slice(3)}: ${label}.`).join(" "))],
@@ -609,7 +614,7 @@ function renderSettings() {
     h("label", {}, label,
       h("select", {
         onchange: (e) => {
-          const value = key === "speech.mode" ? e.target.value : Number(e.target.value);
+          const value = ["speech.mode", "describe.mode"].includes(key) ? e.target.value : Number(e.target.value);
           settings.set(key, value);
           if (key === "catchup.maxRate") state.audio?.setMaxRate(value);
         },
@@ -621,6 +626,7 @@ function renderSettings() {
       h("legend", {}, "Speech and catch-up"),
       h("div", { class: "settings-options" },
         select("speech.mode", "Read descriptions with", [["voice", "Built-in voice"], ["screen-reader", "My screen reader"]]),
+        select("describe.mode", "Describe slides as", [["full", "Full slide text"], ["summary", "Short summary"]]),
         select("voice.rate", "Voice speed", [[1, "1x"], [1.2, "1.2x"], [1.5, "1.5x"], [2, "2x"]]),
         select("catchup.maxRate", "Fastest catch-up speed", [[1.5, "1.5x"], [2, "2x"], [2.5, "2.5x"]]))),
     h("fieldset", { class: "settings-group" },
@@ -653,7 +659,8 @@ function slideBlock(slide, headingTag) {
     h(headingTag, {}, slideLabel(slide)),
     slide.text && h("p", { class: "pre" }, slide.text),
     slide.visuals && h("p", {}, h("strong", {}, "Visuals: "), slide.visuals),
-    h("button", { onclick: () => describeSlide(slide) }, "Read overview aloud"));
+    h("button", { onclick: () => describeSlide(slide) }, "Read aloud"),
+    h("button", { onclick: () => describeSlide(slide, { full: true }) }, "Read full text"));
 }
 
 function renderSlide() {

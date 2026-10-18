@@ -78,5 +78,9 @@ export async function detectCue({ transcript }) {
 
 export async function answerQuestion({ question }) {
   await wait(600);
-  return `This is a mock answer to: ${question}. Real answers arrive once Person 1 connects Gemini.`;
+  if (/revenue|q[1-4]|million/i.test(question)) {
+    return { found: true, answer: "On slide 2, revenue grew every quarter, from 2.1 million dollars in Q1 to 3.6 million in Q4.", slideNumbers: [2] };
+  }
+  if (/team|who/i.test(question)) return { found: true, answer: "On slide 3, the team is four students from the University of Washington.", slideNumbers: [3] };
+  return { found: false, answer: "", slideNumbers: [] };
 }

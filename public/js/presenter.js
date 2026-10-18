@@ -3,6 +3,7 @@ import { $, api, h, roomCode, slideLabel } from "./common.js";
 import { connectSocket, STATUS_TEXT } from "./socket.js";
 import { earcons } from "./earcons.js";
 import { announce } from "./speech.js";
+import { applyDisplaySettings, appearanceSettings } from "./settings.js";
 
 const room = roomCode();
 const state = { slides: [], current: null };
@@ -15,6 +16,13 @@ const CUE_TITLES = {
   "share-file": "Share the file in the chat?",
   "self-description": "Describe yourself?",
 };
+
+// Same saved display choices (high contrast, larger text) as the home and listener pages.
+applyDisplaySettings();
+$("#display-settings").replaceChildren(
+  h("p", { class: "muted" }, "These preferences apply to every NarraAssist page in this browser."),
+  appearanceSettings(),
+);
 
 $("#room").textContent = room || "none";
 const socket = connectSocket(room, "presenter", {
@@ -40,6 +48,7 @@ function onMessage(msg) {
       break;
     case "nudge":
       addCard(msg.nudge.id, {
+        kind: `cue-${CUE_TITLES[msg.nudge.cue] ? msg.nudge.cue : "visuals"}`,
         source: "From the AI",
         title: CUE_TITLES[msg.nudge.cue] || CUE_TITLES.visuals,
         lines: [msg.nudge.reason, msg.nudge.suggestion && `Try saying: "${msg.nudge.suggestion}"`],
@@ -49,6 +58,7 @@ function onMessage(msg) {
       break;
     case "request":
       addCard(msg.request.id, {
+        kind: "cue-request",
         source: "From a listener",
         title: "An attendee asked you to describe the slide",
         lines: [msg.request.note && `They asked: ${msg.request.note}`, msg.request.slide && `Slide ${msg.request.slide}`],
@@ -66,13 +76,13 @@ function onMessage(msg) {
   }
 }
 
-function addCard(id, { source, title, lines, accept, dismiss }) {
+function addCard(id, { kind = "", source, title, lines, accept, dismiss }) {
   if (cards.has(id)) return;
   const respond = (action) => {
     socket.send({ type: "respond", id, action });
     removeCard(id);
   };
-  const card = h("div", { class: "card", role: "group", "aria-label": title },
+  const card = h("div", { class: `card ${kind}`.trim(), role: "group", "aria-label": title },
     h("p", { class: "source" }, source),
     h("h3", {}, title),
     lines.filter(Boolean).map((line) => h("p", {}, line)),

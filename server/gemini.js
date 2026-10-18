@@ -19,16 +19,20 @@ const inline = (bytes, mimeType) => ({ inlineData: { mimeType, data: Buffer.from
 
 // fast: true turns the model's thinking off. On our screenshot tests that halved the time (about 2.5 s)
 // with no loss in accuracy. If a model version rejects the setting, the call is retried without it.
+const rejectsThinkingOff = new Set(); // models that refused thinkingConfig, so we stop sending it to them
+
 async function generateJson(model, parts, schema, { fast = false } = {}) {
   const config = { responseMimeType: "application/json", responseSchema: schema };
-  if (fast) config.thinkingConfig = { thinkingBudget: 0 };
+  if (fast && !rejectsThinkingOff.has(model)) config.thinkingConfig = { thinkingBudget: 0 };
   const started = Date.now();
   let res;
   try {
     res = await client.models.generateContent({ model, contents: [{ role: "user", parts }], config });
   } catch (err) {
-    if (!fast || !/thinking/i.test(err.message)) throw err;
-    console.warn(`[gemini] ${model} rejected thinkingBudget, retrying without it`);
+    // Some models (Flash-Lite among them) reject thinkingConfig with a bare "invalid argument".
+    if (!config.thinkingConfig || !/thinking|INVALID_ARGUMENT|invalid argument/i.test(err.message)) throw err;
+    rejectsThinkingOff.add(model);
+    console.warn(`[gemini] ${model} rejected the thinking-off setting; retrying without it and not sending it again`);
     delete config.thinkingConfig;
     res = await client.models.generateContent({ model, contents: [{ role: "user", parts }], config });
   }
@@ -49,16 +53,37 @@ function notBuilt(name) {
   throw new HttpError(501, `${name} isn't built yet (Person 1). Set MOCK_GEMINI=1 in .env to use mock data.`);
 }
 
-// PDF bytes -> { summary, slides: [{ number, title, text, visuals, overview }] }
+// PDF bytes -> { summary, slides: [{ number, title, text, visuals, overview, summary }] }
+// Main model with its thinking left on: a whole deck in one call is worth the extra seconds.
 export async function processDeck(pdf) {
   if (useMock) return mock.processDeck(pdf);
-  notBuilt("processDeck");
+  const schema = {
+    type: Type.OBJECT,
+    properties: {
+      deckSummary: { type: Type.STRING },
+      pages: {
+        type: Type.ARRAY,
+        items: { type: Type.OBJECT, properties: SLIDE_FIELDS, required: Object.keys(SLIDE_FIELDS) },
+      },
+    },
+    required: ["deckSummary", "pages"],
+  };
+  const out = await generateJson(models.main, [inline(pdf, "application/pdf"), { text: prompts.DESCRIBE_DECK }], schema);
+  const slides = out.pages
+    .map((p, i) => ({ number: p.slideNumber || i + 1, title: p.title, text: p.text, visuals: p.visuals, overview: p.overview, summary: p.summary }))
+    .sort((a, b) => a.number - b.number);
+  return { summary: out.deckSummary, slides };
 }
 
-// JPEG bytes, deck slides -> { slideNumber, confidence }
+// JPEG bytes, deck slides -> { slideNumber, confidence }. Fast model, thinking off: this runs on every slide change.
 export async function matchSlide(jpeg, slides) {
   if (useMock) return mock.matchSlide(jpeg, slides);
-  notBuilt("matchSlide");
+  const schema = {
+    type: Type.OBJECT,
+    properties: { slideNumber: { type: Type.INTEGER }, confidence: { type: Type.NUMBER } },
+    required: ["slideNumber", "confidence"],
+  };
+  return generateJson(models.fast, [inline(jpeg, "image/jpeg"), { text: prompts.matchSlide(slides) }], schema, { fast: true });
 }
 
 // JPEG bytes -> { isSharedContent, title, slideNumber, text, visuals, overview, summary }
@@ -86,8 +111,17 @@ export async function detectCue(input) {
   notBuilt("detectCue");
 }
 
-// { question, pdf, slide, transcript } -> answer text
+// { question, slides, history } -> { found, answer, slideNumbers }. Main model with thinking on: accuracy over speed.
 export async function answerQuestion(input) {
   if (useMock) return mock.answerQuestion(input);
-  notBuilt("answerQuestion");
+  const schema = {
+    type: Type.OBJECT,
+    properties: {
+      found: { type: Type.BOOLEAN },
+      answer: { type: Type.STRING },
+      slideNumbers: { type: Type.ARRAY, items: { type: Type.INTEGER } },
+    },
+    required: ["found", "answer", "slideNumbers"],
+  };
+  return generateJson(models.main, [{ text: prompts.answerQuestion(input) }], schema);
 }
