@@ -22,6 +22,8 @@ const state = {
   nothingShared: false, // the server said the shared screen is empty
   slides: [],
   deck: null,
+  deckPage: null, // page showing in the slide view
+  browsingDeck: false, // true while the slide view is away from the live slide
   summary: "",
   audio: null,
   capture: null,
@@ -685,8 +687,67 @@ function slideBlock(slide, headingTag) {
     slide.text && h("p", { class: "pre" }, slide.text),
     slide.visuals && h("p", {}, h("strong", {}, "Visuals: "), slide.visuals),
     h("button", { onclick: () => describeSlide(slide) }, "Read aloud"),
-    h("button", { onclick: () => describeSlide(slide, { full: true }) }, "Read full text"));
+    h("button", { onclick: () => describeSlide(slide, { full: true }) }, "Read full text"),
+    slide.number && state.deck?.status === "ready" && h("button", { onclick: () => browseDeck(slide.number) }, "Show slide"));
 }
+
+// ---------- slide view: the uploaded PDF, one page at a time, for people who can see some of it ----------
+// Follows the live slide until the listener browses away, then stays put until "Back to live slide".
+
+const liveDeckPage = () => state.slide?.number || null;
+
+function deckPdfUrl() {
+  return `/api/rooms/${room}/deck.pdf?v=${encodeURIComponent(state.deck?.fileName || "")}`;
+}
+
+function showDeckPage(page) {
+  const total = state.slides.length;
+  const target = Math.min(Math.max(page, 1), total);
+  if (target !== state.deckPage) {
+    state.deckPage = target;
+    // A new frame each time, so Chrome's viewer always jumps to the page.
+    const frame = $("#deck-preview");
+    const fresh = frame.cloneNode(false);
+    fresh.src = `${deckPdfUrl()}#page=${target}&view=Fit&toolbar=0&navpanes=0&scrollbar=0`;
+    frame.replaceWith(fresh);
+  }
+  const live = liveDeckPage();
+  const title = state.slides[target - 1]?.title;
+  const where = `Slide ${target} of ${total}${title ? `: ${title}` : ""}.`;
+  $("#deck-view-status").textContent = live ? (target === live ? `${where} This is the live slide.` : `${where} The live slide is ${live}.`) : where;
+  $("#dv-prev").disabled = target <= 1;
+  $("#dv-next").disabled = target >= total;
+  $("#dv-live").hidden = !live || target === live;
+  $("#dv-open").href = `${deckPdfUrl()}#page=${target}`;
+}
+
+function browseDeck(page) {
+  if (state.deck?.status !== "ready" || !state.slides.length) return;
+  state.browsingDeck = page !== liveDeckPage();
+  showDeckPage(page);
+  say($("#deck-view-status").textContent);
+}
+
+function updateDeckView() {
+  const ready = state.deck?.status === "ready" && state.slides.length > 0;
+  for (const id of ["#deck-view-h", "#deck-view-status", "#dv-prev", "#dv-next", "#dv-open", "#deck-preview"]) $(id).hidden = !ready;
+  $("#dv-prev").parentElement.hidden = !ready;
+  if (!ready) {
+    state.deckPage = null;
+    state.browsingDeck = false;
+    return;
+  }
+  if (!state.browsingDeck || !state.deckPage) showDeckPage(liveDeckPage() || state.deckPage || 1);
+  else showDeckPage(state.deckPage);
+}
+
+$("#dv-prev").addEventListener("click", () => browseDeck((state.deckPage || 1) - 1));
+$("#dv-next").addEventListener("click", () => browseDeck((state.deckPage || 0) + 1));
+$("#dv-live").addEventListener("click", () => {
+  state.browsingDeck = false;
+  showDeckPage(liveDeckPage() || 1);
+  say($("#deck-view-status").textContent);
+});
 
 function emptySlideText() {
   if (!state.audio) return "Connect to the Zoom tab to follow the current slide.";
@@ -695,6 +756,7 @@ function emptySlideText() {
 
 function renderSlide() {
   $("#current").replaceChildren(state.slide ? slideBlock(state.slide, "h3") : h("p", {}, emptySlideText()));
+  updateDeckView();
 }
 
 function renderDeck() {
@@ -707,6 +769,7 @@ function renderDeck() {
   if (!d || d.status === "none") $("#deck-status").textContent = "The presenter hasn't uploaded slides yet. The slides and questions appear here when they do.";
   $("#summary").replaceChildren(...(state.summary ? [h("h3", {}, "Summary"), h("p", {}, state.summary)] : []));
   $("#slides").replaceChildren(...state.slides.map((s) => slideBlock(s, "h4")));
+  updateDeckView();
   renderChatState();
 }
 

@@ -150,6 +150,7 @@ section { background: var(--panel); border: 1px solid var(--line); border-radius
 h2 { overflow-wrap: anywhere; font-size: 1.5rem; font-weight: 700; margin: 0 0 0.75rem; padding-left: 0.75rem; border-left: 0.3rem solid var(--accent); }
 h3 { font-size: 1.2rem; font-weight: 700; margin: 0.75rem 0 0.25rem; }
 .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.preview { display: block; width: 100%; height: 30rem; max-height: 70vh; margin: 0.75rem 0; border: 2px solid var(--border); border-radius: 0.75rem; background: var(--raised); }
 .muted { color: var(--muted); }
 .pre { white-space: pre-line; }
 .status { font-weight: 600; }
