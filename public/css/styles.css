@@ -45,6 +45,18 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 1.125rem/1.55 s
 header, main { max-width: 60rem; margin: 0 auto; padding: 1rem; }
 header { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: baseline; border-bottom: 1px solid var(--border); }
 header h1 { font-size: 1.75rem; margin: 0; }
+.site-header { align-items: center; }
+.site-nav { display: flex; flex: 1 0 100%; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.site-nav > a, .nav-dropdown > summary { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0.4rem 0.75rem; border: 2px solid var(--border); border-radius: 0.5rem; background: var(--bg); color: var(--fg); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.nav-dropdown { position: relative; }
+.nav-dropdown > summary { list-style: none; }
+.nav-dropdown > summary::-webkit-details-marker { display: none; }
+.nav-dropdown > summary::after { content: "+"; margin-left: 0.5rem; text-decoration: none; }
+.nav-dropdown[open] > summary::after { content: "−"; }
+.nav-dropdown[open] > div { position: absolute; z-index: 5; top: calc(100% + 0.4rem); left: 0; width: min(22rem, calc(100vw - 2rem)); max-height: min(70vh, 32rem); overflow: auto; padding: 0.75rem; border: 2px solid var(--border); border-radius: 0.75rem; background: var(--bg); color: var(--fg); box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 25%); }
+.nav-dropdown .settings-group { margin: 0; padding: 0.5rem; }
+.nav-dropdown .settings-group legend { font-size: 1.1rem; }
+.site-nav > button { min-height: 2.75rem; }
 section { background: var(--panel); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1rem; margin: 1rem 0; }
 h2 { font-size: 1.5rem; margin: 0 0 0.75rem; }
 h3 { font-size: 1.2rem; margin: 0.75rem 0 0.25rem; }
@@ -92,6 +104,10 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
 .settings-options { display: flex; flex-wrap: wrap; gap: 1rem; }
 .settings-options label { flex: 1 1 10rem; }
 @media (max-width: 32rem) {
+  .site-nav { align-items: stretch; }
+  .site-nav > a, .site-nav > button, .nav-dropdown { flex: 1 1 calc(50% - 0.5rem); }
+  .nav-dropdown > summary { justify-content: center; }
+  .nav-dropdown[open] > div { position: fixed; top: 1rem; left: 1rem; width: calc(100vw - 2rem); max-height: calc(100vh - 2rem); }
   .settings-heading { flex-direction: column-reverse; }
   .settings-heading button { align-self: flex-end; }
   .settings-heading h2 { margin-top: 0.5rem; }

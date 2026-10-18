@@ -10,6 +10,10 @@ import { applyDisplaySettings, appearanceSettings, settings } from "./settings.j
 import { Speaker, announce } from "./speech.js";
 
 applyDisplaySettings();
+$("#display-settings").replaceChildren(
+  h("p", { class: "muted" }, "These preferences are saved in this browser."),
+  appearanceSettings(),
+);
 
 const room = roomCode();
 const speaker = new Speaker();
@@ -351,7 +355,6 @@ function renderSettings() {
         options.map(([value, text]) => h("option", { value, selected: String(settings.get(key)) === String(value) }, text))));
   $("#settings").replaceChildren(
     ...groups,
-    appearanceSettings(),
     h("fieldset", { class: "settings-group" },
       h("legend", {}, "Speech and catch-up"),
       h("div", { class: "settings-options" },

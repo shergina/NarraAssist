@@ -1,9 +1,12 @@
 // Owner: Person 3.
-import { $, api } from "./common.js";
+import { $, api, h } from "./common.js";
 import { applyDisplaySettings, appearanceSettings } from "./settings.js";
 
 applyDisplaySettings();
-$("#display-settings").replaceChildren(appearanceSettings());
+$("#display-settings").replaceChildren(
+  h("p", { class: "muted" }, "These preferences apply to the listener page too."),
+  appearanceSettings(),
+);
 
 $("#create").addEventListener("click", async () => {
   const button = $("#create");

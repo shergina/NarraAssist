@@ -15,6 +15,18 @@
     <h1>Listener</h1>
     <span>Room <code class="room" id="room"></code></span>
     <span id="conn" class="muted" aria-live="off">Connecting…</span>
+    <nav class="site-nav" aria-label="Listener page navigation">
+      <a href="/">Home</a>
+      <a href="#live-h">Live meeting</a>
+      <a href="#slide-h">Current slide</a>
+      <a href="#deck-h">Slides and questions</a>
+      <a href="#transcript-h">Transcript</a>
+      <details class="nav-dropdown">
+        <summary>Accessibility settings</summary>
+        <div id="display-settings"></div>
+      </details>
+      <button id="open-settings" type="button">Listener settings</button>
+    </nav>
   </header>
 
   <main id="main-content" tabindex="-1">
@@ -26,7 +38,6 @@
         <button id="connect" class="primary">Connect to Zoom tab</button>
         <button id="describe">Describe slide</button>
         <button id="live" disabled>Skip to live</button>
-        <button id="open-settings" type="button">Listener settings</button>
       </div>
       <p class="muted">Join the meeting with Zoom's "Join from your browser" first. When Chrome asks what to share, pick the Zoom tab and turn on "Also share tab audio".</p>
       <form id="zoom" class="row" aria-label="Speaker names">

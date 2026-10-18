@@ -8,14 +8,19 @@
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
-  <header><h1>ZoomInSight</h1></header>
+  <header class="site-header">
+    <h1>ZoomInSight</h1>
+    <nav class="site-nav" aria-label="Page navigation">
+      <a href="#create-h">Start a room</a>
+      <a href="#join-h">Join a room</a>
+      <details class="nav-dropdown">
+        <summary>Accessibility settings</summary>
+        <div id="display-settings"></div>
+      </details>
+    </nav>
+  </header>
   <main id="main-content" tabindex="-1">
     <p>Follow a Zoom presentation without listening to the presenter and your screen reader at the same time.</p>
-    <section aria-labelledby="display-h">
-      <h2 id="display-h">Display and text</h2>
-      <p class="muted">These preferences are saved in this browser and also apply on the listener page.</p>
-      <div id="display-settings"></div>
-    </section>
     <section aria-labelledby="create-h">
       <h2 id="create-h">Start a meeting room</h2>
       <p>One room per meeting. Open the listener link yourself and send the presenter link to the speaker.</p>
