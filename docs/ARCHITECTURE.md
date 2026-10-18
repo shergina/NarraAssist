@@ -18,7 +18,7 @@ Zoom web client tab ──(Chrome tab capture: video + audio)──► Listener 
                                                      Presenter page (phone or second screen)
 ```
 
-Rooms are in memory. A server restart clears their contents (slides, transcript, pending cues), but any well-formed code is re-created on first use, so pages that are already open keep working after a restart. The dev server restarts on every saved file.
+Rooms are in memory. A server restart clears their contents (slides, transcript, pending cues), but any code is re-created on first use, so pages that are already open keep working after a restart. Codes are normalized: letters and digits only, case-insensitive, 4 to 24 long, so a pasted Zoom meeting ID like "884 076 2216" becomes room 8840762216 rather than an error. The dev server restarts on every saved file.
 
 ## Shared objects
 
