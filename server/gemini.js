@@ -1,8 +1,7 @@
 // Owner: Person 1. Every Gemini call goes through this file.
 // Each function returns the shape in docs/ARCHITECTURE.md. Until a real version is written,
-// it uses mock data when MOCK_GEMINI=1 or there is no key, and answers 501 otherwise.
+// it uses mock data when MOCK_GEMINI=1 or there is no key.
 import { GoogleGenAI, Type } from "@google/genai";
-import { HttpError } from "./errors.js";
 import * as mock from "./mock-gemini.js";
 import * as prompts from "./prompts.js";
 
@@ -49,9 +48,6 @@ const SLIDE_FIELDS = {
   summary: { type: Type.STRING },
 };
 
-function notBuilt(name) {
-  throw new HttpError(501, `${name} isn't built yet (Person 1). Set MOCK_GEMINI=1 in .env to use mock data.`);
-}
 
 // PDF bytes -> { summary, slides: [{ number, title, text, visuals, overview, summary }] }
 // Main model with its thinking left on: a whole deck in one call is worth the extra seconds.
@@ -108,9 +104,29 @@ export async function transcribe(wav) {
 }
 
 // { slide, transcript, dismissed } -> { shouldNudge, cue: "visuals" | "share-file" | "self-description" | "none", reason, suggestion }
-export async function detectCue(input) {
-  if (useMock) return mock.detectCue(input);
-  notBuilt("detectCue");
+export async function detectCue({ slide, transcript, dismissed = [] }) {
+  if (useMock) return mock.detectCue({ slide, transcript, dismissed });
+  const schema = {
+    type: Type.OBJECT,
+    properties: {
+      shouldNudge: { type: Type.BOOLEAN },
+      cue: { type: Type.STRING, enum: ["visuals", "share-file", "self-description", "none"] },
+      reason: { type: Type.STRING },
+      suggestion: { type: Type.STRING },
+    },
+    required: ["shouldNudge", "cue", "reason", "suggestion"],
+  };
+  const slideText = slide
+    ? `Title: ${slide.title || "(none)"}\nText: ${slide.text || "(none)"}\nVisuals: ${slide.visuals || "(none)"}`
+    : "(nothing is shared)";
+  const parts = [{
+    text: `${prompts.DETECT_CUE}\n\nCurrent slide:\n${slideText}\n\nDismissed kinds: ${dismissed.length ? dismissed.join(", ") : "(none)"}\n\nLast minute of the presenter:\n${transcript}`,
+  }];
+  const out = await generateJson(models.main, parts, schema, { fast: true });
+  const nudge = out.shouldNudge && out.cue !== "none" && !dismissed.includes(out.cue);
+  return nudge
+    ? { shouldNudge: true, cue: out.cue, reason: (out.reason || "").trim(), suggestion: (out.suggestion || "").trim() }
+    : { shouldNudge: false, cue: "none", reason: "", suggestion: "" };
 }
 
 // { question, slides, history } -> { found, answer, slideNumbers }. Main model with thinking on: accuracy over speed.
