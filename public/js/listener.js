@@ -10,10 +10,6 @@ import { applyDisplaySettings, appearanceSettings, settings } from "./settings.j
 import { Speaker, announce } from "./speech.js";
 
 applyDisplaySettings();
-$("#display-settings").replaceChildren(
-  h("p", { class: "muted" }, "These preferences are saved in this browser."),
-  appearanceSettings(),
-);
 
 const room = roomCode();
 const speaker = new Speaker();
@@ -465,7 +461,7 @@ $("#zoom").addEventListener("submit", async (e) => {
   const meeting = parseZoomLink($("#zoom-link").value);
   if (!meeting) return say("That doesn't look like a Zoom link or meeting ID.", { assertive: true });
   try {
-    state.helper = await joinAsHelper({ ...meeting, container: $("#zoom-container") });
+    state.helper = await joinAsHelper({ ...meeting, userName: $("#listener-name").value.trim() || undefined, container: $("#zoom-container") });
     state.helper.addEventListener("speaker", (ev) => onSpeaker(ev.detail));
     say("Speaker names are on.");
   } catch (err) {
@@ -528,6 +524,9 @@ function renderMode() {
   $("#screen-reader-help").hidden = !state.manualDescriptionEnd;
   // Live controls exist only while connected. "Stop and catch up" plays what was missed; "Jump to live" drops it.
   const connected = Boolean(audio);
+  $("#live-controls").hidden = !connected;
+  $("#request").hidden = !connected;
+  $("#setup-steps").hidden = connected && Boolean(state.capture);
   $("#describe").hidden = !connected;
   $("#describe").textContent = describeLabel();
   $("#live").hidden = !connected || audio.mode === "live";
@@ -629,6 +628,7 @@ function renderSettings() {
       },
         options.map(([value, text]) => h("option", { value, selected: String(settings.get(key)) === String(value) }, text))));
   $("#settings").replaceChildren(
+    appearanceSettings(),
     ...groups,
     h("fieldset", { class: "settings-group" },
       h("legend", {}, "Speech and catch-up"),

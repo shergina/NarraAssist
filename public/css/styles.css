@@ -131,13 +131,11 @@ header :focus-visible { outline-color: var(--hero-focus); }
 .nav-dropdown[open] > div :focus-visible { outline-color: var(--focus); }
 .site-header { align-items: center; }
 .site-nav { display: flex; min-width: 0; flex: 1 0 100%; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
-.site-nav > a, .nav-dropdown > summary { min-width: 0; max-width: 100%; overflow-wrap: anywhere; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0.4rem 0.9rem; border: 2px solid var(--border); border-radius: 999px; background: var(--raised); color: var(--fg); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.site-nav > a, .nav-dropdown > summary { min-width: 0; max-width: 100%; overflow-wrap: anywhere; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0.4rem 0.9rem; border: 2px solid var(--border); border-radius: 999px; background: var(--raised); color: var(--fg); font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
 .site-nav > a:hover, .nav-dropdown > summary:hover { background: var(--accent-soft); }
 .nav-dropdown { position: relative; min-width: 0; max-width: 100%; }
 .nav-dropdown > summary { list-style: none; }
 .nav-dropdown > summary::-webkit-details-marker { display: none; }
-.nav-dropdown > summary::after { content: "+"; margin-left: 0.5rem; text-decoration: none; }
-.nav-dropdown[open] > summary::after { content: "−"; }
 .nav-dropdown[open] > div { position: absolute; z-index: 5; top: calc(100% + 0.4rem); left: 0; width: min(24rem, calc(100vw - 2rem)); max-height: min(70vh, 36rem); overflow: auto; padding: 0.75rem; border: 2px solid var(--border); border-radius: 0.75rem; background: var(--raised); color: var(--fg); box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 25%); }
 .nav-dropdown .settings-group { margin: 0 0 0.75rem; padding: 0.5rem; }
 .nav-dropdown .settings-group legend { font-size: 1.1rem; }
@@ -245,3 +243,13 @@ dialog::backdrop { background: rgb(0 0 0 / 65%); }
 .chat-form textarea { flex: 1; min-height: 2.75rem; resize: vertical; }
 :root[data-contrast="high"] .msg.user { background: var(--accent); color: var(--accent-fg); }
 :root[data-contrast="high"] .msg.assistant { border-color: var(--fg); }
+
+/* Setup as numbered steps, and forms whose input and button line up. */
+.steps { margin: 0.75rem 0 0; padding-left: 1.5rem; display: grid; gap: 1rem; }
+.steps > li { padding-left: 0.25rem; }
+.steps > li > strong { display: block; margin-bottom: 0.25rem; }
+.steps > li > p { margin: 0 0 0.6rem; }
+.field-row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
+.field-row > label { display: flex; flex-direction: column; gap: 0.3rem; flex: 1 1 16rem; min-width: 0; }
+.field-row > label > input { width: 100%; min-height: 2.75rem; }
+.field-row > button { min-height: 2.75rem; }
