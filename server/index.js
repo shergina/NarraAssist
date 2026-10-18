@@ -73,14 +73,17 @@ app.post("/api/rooms/:id/frame", express.raw({ type: "image/jpeg", limit: "8mb" 
     if (d.isSharedContent) slide = { number: d.slideNumber || null, title: d.title, text: d.text, visuals: d.visuals, overview: d.overview, summary: d.summary };
     else reason = "nothing-shared";
   }
-  // One empty frame can be a glitch in slide detection. Clear the slide only after two in a row.
-  room.emptyFrames = reason === "nothing-shared" ? (room.emptyFrames || 0) + 1 : 0;
-  if (!slide && room.emptyFrames >= 2 && room.current) {
+  // Slide detection fires a couple of empty frames while a slide change settles, so an empty frame means
+  // nothing on its own. Clear the slide only once nothing has been shared for a while.
+  const EMPTY_FOR_MS = 8000;
+  if (slide) room.lastContentAt = Date.now();
+  else if (reason === "nothing-shared" && room.current && Date.now() - (room.lastContentAt || 0) > EMPTY_FOR_MS) {
     room.current = null;
     broadcast(room, { type: "slide", slide: null, source: "screen" });
   }
   const changed = slide ? setCurrentSlide(room, slide, "screen") : false;
-  console.log(`[frame] ${room.id} ${Math.round(req.body.length / 1024)} KB -> ${reason}${slide ? `: "${slide.title}"` : ""}`);
+  const listeners = [...room.clients].filter((c) => c.role === "listener" && c.ws.readyState === 1).length;
+  console.log(`[frame] ${room.id} ${Math.round(req.body.length / 1024)} KB -> ${reason}${slide ? `: "${slide.title}"` : ""}${changed ? ` (new, sent to ${listeners} listener socket${listeners === 1 ? "" : "s"})` : ""}`);
   if (process.env.DEBUG_FRAMES === "1") saveFrame(room, req.body, reason);
   res.json({ changed, reason, slide: room.current });
 });
