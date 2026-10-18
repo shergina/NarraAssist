@@ -108,7 +108,7 @@ The skeleton already has every file, each with its owner at the top. Stubs are m
 4c. **Fallback test, with a screen reader on.** From our page, switch to the Zoom tab, unmute with Zoom's shortcut, talk, mute, switch back, on a Mac and on Windows. Note what the screen reader says at each step and confirm our descriptions and sounds keep playing while the Zoom tab has focus. Write the exact keys into the onboarding text and the result into docs/DECISIONS.md.
 5. **Settings.** On by default, each one can be turned off: every earcon, speaker names, slide titles. Also voice speed, catch-up speed cap, built-in voice or own screen reader. Saved in the browser.
 6. **Every shortcut** in the PRODUCT.md table, including Alt+Shift+H to hear them all.
-7. **Slide review and Q&A** screens.
+7. **Slide review** screen, per "Slide review before the meeting" in ARCHITECTURE.md. The deck content is real now: upload a PDF on the presenter page with a Gemini key, or use mock mode for three canned slides. Q&A screen later, once Person 1 builds the answer function.
 8. **Screen reader pass.** VoiceOver on Mac and NVDA on Windows, keyboard only, monitor off, before the Sunday morning run-through. Check that Alt+Shift doesn't switch keyboard language on Windows.
 
 **Provides.** `speech.js`, `earcons.js` and `settings.js` as specified in ARCHITECTURE.md. Person 4's presenter page may import them but doesn't change them.

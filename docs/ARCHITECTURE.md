@@ -205,6 +205,17 @@ Person 3 implements these rules in `listener.js`.
 - **Presenter quiet.** Play the falling tone. Queue the words if a description is playing.
 - **Caught up.** Play the rising sweep.
 
+## Slide review before the meeting
+
+Person 3 builds this on the listener page, with Saanvi's design applied on top. It works whenever a deck has been uploaded, before or during the meeting, and it never touches the meeting audio.
+
+- The "All slides" list is a single focusable list. Up and Down (or Left and Right) move between slides; Home and End jump to the first and last. Moving announces "Slide 4 of 11: Three Pillars".
+- In built-in voice mode, landing on a slide reads it after a 400 ms pause, so arrowing through the deck quickly doesn't start a reading per slide. Enter or Space reads the current slide again. Escape stops reading.
+- In screen-reader mode nothing is spoken by us: the slide's text, visuals and summary are in the page as text, and the user's screen reader reads them as they move.
+- What is read follows the same rules as a live description: the title is announced, then `overview`, or `summary` when the summary setting is on. Starting a new reading cancels the old one (the Speaker already does this).
+- The current review slide is separate from the live slide. Reviewing never calls `hold()` on the audio engine. If the meeting is live, the live status line stays as it is.
+- The deck's spoken summary gets its own "Read deck summary" button and appears above the list.
+
 ## Mock mode and developer tools
 
 With `MOCK_GEMINI=1` in `.env`, or no key at all, every function in `server/gemini.js` returns canned data from `server/mock-gemini.js`, and nothing calls Google.
