@@ -69,6 +69,10 @@ If the server warns that a model is not available, list the ones your key can us
 npm run models
 ```
 
+## Testing with teammates or demoing
+
+Each `npm run dev` is its own server with its own rooms, so two laptops can't share a room unless they use the same server. For team tests and the demo, one laptop runs the server plus a Cloudflare tunnel (`brew install cloudflared`, then `cloudflared tunnel --url http://localhost:3000`), and everyone uses the https address it prints. See docs/DEMO.md.
+
 ## Trying it
 
 1. Open http://localhost:3000 and press **Create room**.
