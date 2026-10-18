@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Listener · NarraAssist</title>
+  <link rel="icon" type="image/svg+xml" href="/NarraAssistLogoWhite.svg">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -12,6 +13,7 @@
   <div id="sr-alert" class="sr-only" role="alert" aria-live="assertive"></div>
 
   <header>
+    <p class="crumb"><a class="site-brand" href="/" aria-label="NarraAssist home"><img src="/NarraAssistLogo.svg" alt=""><span>NarraAssist</span></a> <svg class="crumb-chevron" aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" focusable="false"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
     <h1>Listener</h1>
     <span>Room <code class="room" id="room"></code></span>
     <span id="conn" class="muted" aria-live="off">Connecting…</span>
@@ -29,23 +31,10 @@
       <p id="mode" class="status" aria-live="off">Not connected to Zoom yet.</p>
       <p id="screen-reader-help" class="muted" hidden>When the screen reader finishes the slide description, press Alt+Shift+D to return to the presenter and catch up.</p>
       <ol id="setup-steps" class="steps">
+        <li>Join the Zoom link from your browser, using Zoom's <strong>"Join from your browser"</strong> option.</li>
         <li>
-          <strong>Join the meeting in Zoom's browser client.</strong>
-          <p>Open the Zoom link in another Chrome tab and choose "Join from your browser". Keep that tab open.</p>
-        </li>
-        <li>
-          <strong>Connect this page to that tab.</strong>
-          <p>When Chrome asks what to share, pick the Zoom tab and turn on "Also share tab audio".</p>
+          Press Connect, then choose the Zoom tab and turn on <strong>"Also share tab audio"</strong>.
           <button id="connect" class="primary">Connect to Zoom tab</button>
-        </li>
-        <li>
-          <strong>Optional: speaker names.</strong>
-          <p>Paste the Zoom link and your name, and the page will say who is talking.</p>
-          <form id="zoom" class="field-row" aria-label="Speaker names">
-            <label>Zoom meeting link <input id="zoom-link" autocomplete="off"></label>
-            <label>Your name <input id="listener-name" autocomplete="name"></label>
-            <button type="submit">Turn on speaker names</button>
-          </form>
         </li>
       </ol>
       <div id="live-controls" class="row" hidden>
@@ -55,10 +44,19 @@
       </div>
       <p id="floating-video-status" class="muted" role="status" hidden></p>
       <div id="capture-preview" class="capture-source" aria-hidden="true"></div>
+      <div id="speaker-names" hidden>
+        <h3>Speaker names</h3>
+        <p>To hear who is talking, add the Zoom link and your name.</p>
+        <form id="zoom" class="field-row" aria-label="Speaker names">
+          <label class="grow-2">Zoom meeting link <input id="zoom-link" autocomplete="off"></label>
+          <label>Your name <input id="listener-name" autocomplete="name"></label>
+          <button type="submit">Turn on speaker names</button>
+        </form>
+      </div>
       <div id="zoom-container" hidden></div>
     </section>
 
-    <section aria-labelledby="slide-h">
+    <section id="slide-section" aria-labelledby="slide-h" hidden>
       <h2 id="slide-h">Current slide</h2>
       <div id="current"></div>
       <form id="request" class="field-row" aria-label="Ask the presenter to describe" hidden>
@@ -117,12 +115,10 @@
   </main>
   <dialog id="settings-dialog" aria-labelledby="settings-h" aria-describedby="settings-description">
     <div class="settings-heading">
-      <div>
-        <h2 id="settings-h">Settings</h2>
-        <p id="settings-description" class="muted">Display, sounds, speech and catch-up. Changes are saved in this browser.</p>
-      </div>
+      <h2 id="settings-h">Settings</h2>
       <button id="close-settings" type="button">Close</button>
     </div>
+    <p id="settings-description" class="muted">Changes are saved in this browser.</p>
     <div id="settings"></div>
   </dialog>
   <script type="module" src="/js/listener.js"></script>

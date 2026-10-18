@@ -37,6 +37,7 @@ function onMessage(msg) {
       state.current = msg.state.current ?? null;
       renderDeck(msg.state.deck);
       $("#transcript").replaceChildren(...(msg.state.transcript || []).map((t) => h("p", {}, t.text)));
+      $("#transcript-section").hidden = !(msg.state.transcript || []).length;
       break;
     case "deck":
       if (msg.slides) state.slides = msg.slides;
@@ -70,6 +71,7 @@ function onMessage(msg) {
       removeCard(msg.id);
       break;
     case "transcript":
+      $("#transcript-section").hidden = false;
       $("#transcript").append(h("p", {}, msg.entry.text));
       $("#transcript").scrollTop = $("#transcript").scrollHeight;
       break;
@@ -121,14 +123,9 @@ let pushOn = false;
 const pushSupported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 const swReady = pushSupported ? navigator.serviceWorker.register("/sw.js").then(() => navigator.serviceWorker.ready) : null;
 
-function setNotifyButton(text) {
-  $("#notify").textContent = text;
-}
-
-async function subscribePush({ ask }) {
+async function subscribePush() {
   const reg = await swReady;
   let sub = await reg.pushManager.getSubscription();
-  if (!sub && !ask) return false;
   const { publicKey } = await api("/api/push/key");
   if (sub && toBase64Url(sub.options?.applicationServerKey) !== publicKey) {
     // The server has a new key, so the old subscription no longer works.
@@ -140,54 +137,51 @@ async function subscribePush({ ask }) {
   return true;
 }
 
-async function unsubscribePush() {
-  const sub = await (await swReady).pushManager.getSubscription();
-  if (!sub) return;
-  await api("/api/push/unsubscribe", { method: "POST", json: { endpoint: sub.endpoint } }).catch(() => {});
-  await sub.unsubscribe();
-}
-
 const fromBase64Url = (text) => Uint8Array.from(atob(text.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
 const toBase64Url = (buffer) => buffer && btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-// Already allowed on an earlier visit: renew the subscription for this room without asking again.
+// Once allowed, the button gives way to a chip. Without push, the chip says notifications stop when the page closes.
+function renderNotifications() {
+  const granted = "Notification" in window && Notification.permission === "granted";
+  $("#notify").hidden = granted;
+  $("#notify-status").hidden = !granted;
+  $("#notify-status").replaceChildren(h("span", { "aria-hidden": "true" }, "✓"), pushOn ? " Notifications on" : " Notifications on while this page is open");
+}
+renderNotifications();
+
+// Already allowed on an earlier visit: renew the subscription for this room. With permission granted, this doesn't ask.
 if (pushSupported && Notification.permission === "granted") {
-  subscribePush({ ask: false })
-    .then((ok) => ok && ((pushOn = true), setNotifyButton("Turn off notifications")))
-    .catch((err) => console.warn("[push]", err.message));
+  subscribePush()
+    .then((ok) => (pushOn = ok))
+    .catch((err) => console.warn("[push]", err.message))
+    .finally(renderNotifications);
 }
 
 $("#notify").addEventListener("click", async () => {
   if (!("Notification" in window)) return announce("This browser doesn't support notifications.");
-  if (pushOn) {
-    await unsubscribePush().catch((err) => console.warn("[push]", err.message));
-    pushOn = false;
-    setNotifyButton("Turn on notifications");
-    return announce("Notifications off.");
-  }
   const result = await Notification.requestPermission();
   if (result !== "granted") {
-    setNotifyButton("Notifications blocked");
+    renderNotifications();
+    $("#notify").textContent = "Notifications blocked in this browser";
     return announce("Notifications are blocked. Allow them in the browser's site settings.");
   }
   if (!pushSupported) {
-    setNotifyButton("Notifications on while this page is open");
+    renderNotifications();
     return announce(window.isSecureContext
       ? "Notifications on, but only while this page is open. This browser can't receive them with the page closed."
       : "Notifications on, but only while this page is open. Open the page over HTTPS to get them on a locked phone.");
   }
   try {
-    await subscribePush({ ask: true });
-    pushOn = true;
-    setNotifyButton("Turn off notifications");
+    pushOn = await subscribePush();
     announce("Notifications on. Prompts will reach this device even with the page closed.");
   } catch (err) {
     console.warn("[push]", err);
-    setNotifyButton("Notifications on while this page is open");
     announce("Notifications on, but only while this page is open. Push couldn't be set up.");
   }
+  renderNotifications();
 });
 
+$("#upload").addEventListener("click", () => $("#deck").click());
 $("#deck").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -202,13 +196,13 @@ $("#deck").addEventListener("change", async (e) => {
 
 function renderDeck(deck = { status: "none" }) {
   $("#deck-status").textContent = {
-    none: "Optional: upload your deck as a PDF so attendees can review it.",
-    processing: `Preparing ${deck.fileName}…`,
+    none: "Optional: upload your deck so attendees can review it before the talk.",
+    processing: `Preparing ${deck.fileName}… This usually takes about a minute.`,
     ready: `${deck.fileName}: ${deck.slideCount} slides ready for attendees.`,
     error: `Couldn't read the slides: ${deck.error}`,
   }[deck.status] ?? "";
   $("#jump").replaceChildren(...state.slides.map((s) => h("option", { value: s.number }, slideLabel(s))));
-  $("#jump").disabled = $("#prev").disabled = $("#next").disabled = state.slides.length === 0;
+  $("#slides-section").hidden = state.slides.length === 0;
   renderCurrent();
 }
 
@@ -224,7 +218,7 @@ function showPreview(file) {
   previewUrl = URL.createObjectURL(file);
   shownPage = null;
   browsing = false;
-  for (const id of ["#preview", "#preview-status", "#preview-controls", "#open-preview"]) $(id).hidden = false;
+  for (const id of ["#preview-section", "#preview", "#preview-status", "#preview-controls", "#open-preview"]) $(id).hidden = false;
   updatePreview();
 }
 
@@ -267,7 +261,10 @@ function browse(delta) {
 }
 
 function renderCurrent() {
-  $("#current").textContent = state.current ? slideLabel(state.current) : "Not set";
+  // "Back to live slide" only means something once a live slide exists.
+  const pvLive = $("#pv-live");
+  if (pvLive) pvLive.hidden = !state.current;
+  $("#current").textContent = state.current ? slideLabel(state.current) : "not set";
   if (state.current?.number) $("#jump").value = state.current.number;
   updatePreview();
 }
