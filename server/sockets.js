@@ -12,6 +12,7 @@ export function attachSockets(server) {
     if (!room) return ws.close(4404, "Unknown room");
 
     const client = { ws, role: url.searchParams.get("role") === "presenter" ? "presenter" : "listener" };
+    if (process.env.DEBUG_FRAMES === "1") console.log(`[${new Date().toTimeString().slice(0, 8)}] socket ${client.role} joined ${room.id}`);
     room.clients.add(client);
     ws.send(JSON.stringify({ type: "state", state: publicState(room) }));
     if (client.role === "presenter") {
