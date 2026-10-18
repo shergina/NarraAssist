@@ -69,6 +69,10 @@ If the server warns that a model is not available, list the ones your key can us
 npm run models
 ```
 
+## Hosting it (one server for everyone)
+
+`render.yaml` is a Render blueprint: in Render choose New, then Blueprint, pick this repo, and enter the Gemini key when asked. The free plan sleeps after 15 minutes idle and loses saved decks on every deploy; the Starter plan plus a small disk (set `DATA_DIR=/var/data`) fixes both. Point a domain at the service under Settings, Custom Domains, and enter the records Render shows at the registrar.
+
 ## Testing with teammates or demoing
 
 Each `npm run dev` is its own server with its own rooms, so two laptops can't share a room unless they use the same server. For team tests and the demo, one laptop runs the server plus a Cloudflare tunnel (`brew install cloudflared`, then `cloudflared tunnel --url http://localhost:3000`), and everyone uses the https address it prints. See docs/DEMO.md.
