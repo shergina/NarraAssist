@@ -116,8 +116,6 @@
 :root[data-text-size="xxlarge"] { font-size: 200%; }
 :root[data-bold="on"] body { font-weight: 600; }
 :root[data-bold="on"] h1, :root[data-bold="on"] h2, :root[data-bold="on"] h3, :root[data-bold="on"] button, :root[data-bold="on"] .status { font-weight: 800; }
-:root[data-focus="big"] :focus-visible { outline-width: 6px; outline-offset: 4px; }
-
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 1.125rem/var(--leading) var(--font); letter-spacing: var(--tracking); word-spacing: var(--word-gap); }
 header, main { max-width: 72rem; margin: 0 auto; padding: 1rem; }
@@ -169,6 +167,7 @@ section, .card, details, fieldset { min-width: 0; }
 textarea { width: 100%; }
 label.inline { flex-direction: row; align-items: center; gap: 0.5rem; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+:root[data-focus="big"] :focus-visible { outline-width: 6px; outline-offset: 4px; }
 a { color: var(--accent); text-decoration: underline; text-underline-offset: 0.15em; }
 .card { background: var(--card); border: 2px solid var(--card-border); border-left-width: 0.5rem; border-radius: 1rem; padding: 1rem 1.25rem; margin: 0.75rem 0; }
 .transcript { max-height: 16rem; overflow-y: auto; }
