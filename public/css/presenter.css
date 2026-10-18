@@ -26,7 +26,7 @@
 .preview { display: block; width: 100%; height: 30rem; margin: 0.75rem 0; border: 2px solid var(--border); border-radius: 0.75rem; background: var(--raised); }
 
 /* Hidden sections and rows must stay hidden even where a display rule applies. */
-section[hidden], #preview-block[hidden], #notify[hidden], #notify-status[hidden] { display: none; }
+section[hidden], #preview-section[hidden], #notify[hidden], #notify-status[hidden] { display: none; }
 /* "Go to" sits in front of its dropdown, on the same baseline as the buttons. */
 #slide-controls label.inline { display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
 #slide-controls select { min-height: 2.75rem; }

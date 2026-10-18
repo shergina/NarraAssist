@@ -13,7 +13,7 @@
   <div id="sr-alert" class="sr-only" role="alert" aria-live="assertive"></div>
 
   <header>
-    <p class="crumb"><a href="/" aria-label="NarraAssist home">NarraAssist</a> <span aria-hidden="true">›</span></p>
+    <p class="crumb"><a href="/" aria-label="NarraAssist home">NarraAssist</a> <svg class="crumb-chevron" aria-hidden="true" viewBox="0 0 16 16" width="16" height="16" focusable="false"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
     <h1>Presenter</h1>
     <span>Room <code class="room" id="room"></code></span>
     <span id="conn" class="muted" aria-live="off">Connecting…</span>
@@ -54,8 +54,10 @@
       </div>
       <p>These change the live slide that attendees are told about.</p>
 
-      <div id="preview-block" hidden>
-      <h3>Slide preview</h3>
+    </section>
+
+    <section id="preview-section" aria-labelledby="preview-h" hidden>
+      <h2 id="preview-h">Slide preview</h2>
       <p id="preview-status" class="status" role="status" hidden></p>
       <div id="preview-controls" class="row" role="group" aria-label="Browse the preview. This does not change the live slide." hidden>
         <button id="pv-prev" type="button">Preview: back</button>
@@ -64,7 +66,6 @@
       </div>
       <iframe id="preview" class="preview" title="Preview of your slides" hidden></iframe>
       <p><a id="open-preview" href="#" target="_blank" rel="noopener" hidden>Open slides in a new tab</a></p>
-      </div>
     </section>
 
     <section id="transcript-section" aria-labelledby="transcript-h" hidden>
