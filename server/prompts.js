@@ -163,3 +163,34 @@ meeting toolbar. Compare the title and text, not the layout. Return
 slideNumber 0 if nothing is shared, or if what is shared is not one of
 these pages. confidence is between 0 and 1.`;
 }
+
+// Answer a listener's question from the uploaded deck only. Three layers keep it honest: these rules,
+// the "found" and slideNumbers fields the server checks, and the fact that the model sees nothing but the slides.
+export function answerQuestion({ slides, question, history }) {
+  const deck = slides
+    .map((s) => `Slide ${s.number}: ${s.title}\n${s.text}${s.visuals ? `\nVisuals: ${s.visuals}` : ""}`)
+    .join("\n\n");
+  const past = (history || [])
+    .slice(-3)
+    .map((h) => `Question: ${h.question}\nAnswer: ${h.answer}`)
+    .join("\n");
+  return `You are helping a blind or low-vision person review a slide deck before a
+presentation. Answer their question using only the slides below.
+
+Rules. Use only what is written in the slides. If the answer is not in
+the slides, set found to false and leave answer empty; do not guess and
+do not use anything you know from elsewhere. Never add facts, numbers,
+names, or dates that are not written in the slides, even if you are sure
+of them. When you answer, say which slide it comes from, for example
+"On slide 4, ...", and list those slide numbers in slideNumbers. Keep
+the answer to at most four sentences. Write for the ear: plain
+sentences, no bullet characters, no markdown, no symbols; say "percent"
+and "dollars" in words. If the question is about the deck as a whole,
+answer from all slides and list the slides you used.
+
+The slides:
+
+${deck}
+${past ? `\nEarlier in this conversation:\n${past}\n` : ""}
+Question: ${question}`;
+}

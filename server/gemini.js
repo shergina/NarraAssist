@@ -111,8 +111,17 @@ export async function detectCue(input) {
   notBuilt("detectCue");
 }
 
-// { question, pdf, slide, transcript } -> answer text
+// { question, slides, history } -> { found, answer, slideNumbers }. Main model with thinking on: accuracy over speed.
 export async function answerQuestion(input) {
   if (useMock) return mock.answerQuestion(input);
-  notBuilt("answerQuestion");
+  const schema = {
+    type: Type.OBJECT,
+    properties: {
+      found: { type: Type.BOOLEAN },
+      answer: { type: Type.STRING },
+      slideNumbers: { type: Type.ARRAY, items: { type: Type.INTEGER } },
+    },
+    required: ["found", "answer", "slideNumbers"],
+  };
+  return generateJson(models.main, [{ text: prompts.answerQuestion(input) }], schema);
 }
