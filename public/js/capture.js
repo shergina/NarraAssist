@@ -6,7 +6,7 @@
 // and the engine stays silent, so the listener still hears the meeting, just without pause and catch-up.
 export async function startCapture() {
   const stream = await navigator.mediaDevices.getDisplayMedia({
-    video: { frameRate: 5 },
+    video: { frameRate: 2 }, // 2 frames a second: enough to spot slide changes, keeps the Zoom tab's load down
     audio: { suppressLocalAudioPlayback: true, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
     selfBrowserSurface: "exclude",
   });
@@ -24,7 +24,7 @@ export async function startCapture() {
 // A slide change is many still cells changing from the last settled screen, then holding still.
 const AW = 256; // analysis width in pixels
 const CELL = 8; // cell size in analysis pixels
-const TICK_MS = 250;
+const TICK_MS = 500; // matches the 2 fps capture; slide changes still fire within about 1.5 s
 const WARMUP_MS = 1500; // learn which cells are moving before firing anything
 const SETTLE_MS = 1000;
 const PIXEL_DIFF = 24; // brightness change, 0 to 255, that counts as a changed pixel
