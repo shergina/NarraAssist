@@ -187,7 +187,7 @@ function renderFloatingVideo() {
   const active = Boolean(state.pipWindow && !state.pipWindow.closed);
   button.disabled = !supported || (!state.capture && !active);
   button.setAttribute("aria-pressed", String(active));
-  button.textContent = active ? "Close floating player" : "Open floating player";
+  button.textContent = active ? "Close picture-in-picture" : "Open picture-in-picture";
   $("#floating-video-status").textContent = !supported
     ? "The floating player needs Chrome."
     : active
@@ -535,7 +535,6 @@ function renderMode() {
   $("#describe").hidden = !connected;
   $("#describe").textContent = describeLabel();
   $("#live").hidden = !connected || audio.mode === "live";
-  $("#floating-video").hidden = !connected;
   $("#floating-video-status").hidden = !connected;
   if (audio) {
     const behind = Math.round(audio.secondsBehind);
